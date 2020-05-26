@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 
 import numpy as np
@@ -60,3 +61,39 @@ class TestSubSection(TestCase):
         self.assertRaisesRegex(
             ValueError, "station and elevation must have the same size",
             SubSection, *args)
+
+    def test_area(self):
+
+        # unit square
+        station = [0, 0, 1, 1]
+        elevation = [1, 0, 0, 1]
+        roughness = 0.035
+        ss = SubSection(station, elevation, roughness)
+        e = np.linspace(0, 100)
+        self.assertTrue(np.allclose(e, ss.area(e)))
+
+        # double square
+        station = [0, 0, 2, 2]
+        elevation = [1, 0, 0, 1]
+        ss = SubSection(station, elevation, roughness)
+        e = np.linspace(0, 100)
+        self.assertTrue(np.allclose(2*e, ss.area(e)))
+
+        # triangle
+        z = np.cos(np.arcsin(0.5))
+        station = [0, 0.5, 1]
+        elevation = [z, 0, z]
+        ss = SubSection(station, elevation, roughness)
+        e = np.linspace(0, z, 10)
+        self.assertTrue(np.allclose(e**2*np.tan(np.pi/6), ss.area(e)))
+
+        # double triangle
+        station = [0, 0.5, 1, 1.5, 2]
+        elevation = [z, 0, z, 0, z]
+        ss = SubSection(station, elevation, roughness)
+        e = np.linspace(0, z, 10)
+        self.assertTrue(np.allclose(2*e**2*np.tan(np.pi/6), ss.area(e)))
+
+
+if __name__ == '__main__':
+    unittest.main()
