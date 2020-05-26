@@ -6,3 +6,5 @@ pylint==2.4.4
 recommonmark
 rstcheck
 Sphinx
+sphinx-autobuild
+wheel
