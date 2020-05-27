@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from anchovy.subsection import SubSection
+from anchovy.crosssection import SubSection
 
 
 class TestSubSection(TestCase):
