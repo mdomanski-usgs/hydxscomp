@@ -111,6 +111,44 @@ class TestSubSection(TestCase):
         e = np.linspace(0, z, 10)
         self.assertTrue(np.allclose(2*e**2*np.tan(np.pi/6), ss.area(e)))
 
+    def test_top_width(self):
+
+        # unit square
+        station = [0, 0, 1, 1]
+        elevation = [1, 0, 0, 1]
+        roughness = 0.035
+        ss = SubSection(station, elevation, roughness)
+        e = np.linspace(0, 100)
+        tw = np.ones_like(e)
+        tw[0] = 0
+        self.assertTrue(np.allclose(tw, ss.top_width(e)))
+
+        # double square
+        station = [0, 0, 2, 2]
+        elevation = [1, 0, 0, 1]
+        ss = SubSection(station, elevation, roughness)
+        e = np.linspace(0, 100)
+        tw = 2*np.ones_like(e)
+        tw[0] = 0
+        self.assertTrue(np.allclose(tw, ss.top_width(e)))
+
+        # triangle
+        z = np.cos(np.arcsin(0.5))
+        station = [0, 0.5, 1]
+        elevation = [z, 0, z]
+        ss = SubSection(station, elevation, roughness)
+        e = np.linspace(0, z, 10)
+        tw = 2*e*np.tan(np.pi/6)
+        self.assertTrue(np.allclose(tw, ss.top_width(e)))
+
+        # double triangle
+        station = [0, 0.5, 1, 1.5, 2]
+        elevation = [z, 0, z, 0, z]
+        ss = SubSection(station, elevation, roughness)
+        e = np.linspace(0, z, 10)
+        tw = 2*2*e*np.tan(np.pi/6)
+        self.assertTrue(np.allclose(tw, ss.top_width(e)))
+
 
 if __name__ == '__main__':
     unittest.main()
