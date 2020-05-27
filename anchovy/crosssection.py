@@ -145,8 +145,7 @@ class SubSection:
 
         Returns
         -------
-        array_like
-            Computed area
+        area : float or ndarray
 
         """
 
@@ -162,8 +161,7 @@ class SubSection:
 
         Returns
         -------
-        array_like
-            Computed top width
+        top_width : float or ndarray
 
         """
 
@@ -291,8 +289,7 @@ class CrossSection:
 
         Returns
         -------
-        ndarray
-            Computed area
+        area : float or ndarray
 
         """
 
@@ -313,8 +310,7 @@ class CrossSection:
 
         Returns
         -------
-        ndarray
-            Computed top width
+        top_width : float or ndarray
 
         """
 
