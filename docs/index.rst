@@ -2,10 +2,11 @@ aluminum anchovy documentation
 ==================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    CONTRIBUTING
+   api
 
 
 Indices and tables
