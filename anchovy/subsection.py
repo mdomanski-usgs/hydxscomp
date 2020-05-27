@@ -7,7 +7,9 @@ class SubSection:
     Parameters
     ----------
     station : array_like
+        Station (lateral) coordinate
     elevation : array_like
+        Elevation (vertical) coordinate
     roughness : float
         Manning's roughness coefficient, in s/m**(1/3)
 
@@ -46,6 +48,37 @@ class SubSection:
         s, e = self._wp(elevation)
         nan_e = np.isnan(e)
         return np.trapz(s[~nan_e], e[~nan_e])
+
+    def _top_width(self, elevation):
+        s, e = self._wp(elevation)
+        tw = 0
+        for i in range(1, len(s)):
+            if np.isnan(e[i-1]) or np.isnan(e[i]):
+                continue
+            else:
+                tw += s[i] - s[i-1]
+
+        return tw
+
+    def _array_comp(self, elevation, func):
+
+        elevation = np.array(elevation, dtype=np.float)
+        val = np.empty_like(elevation)
+
+        with np.nditer([elevation, val], [], [['readonly'], ['writeonly']]) \
+                as it:
+            for e, a in it:
+                if e <= self._min_elevation:
+                    a[...] = 0
+                elif not np.isfinite(e):
+                    a[...] = np.nan
+                else:
+                    a[...] = func(e)
+
+        if val.size == 1:
+            return float(val)
+        else:
+            return val
 
     def _interp_station(self, s1, e1, s2, e2, e):
 
@@ -108,6 +141,7 @@ class SubSection:
         Parameters
         ----------
         elevation : array_like
+            Elevations to comptue area
 
         Returns
         -------
@@ -116,20 +150,21 @@ class SubSection:
 
         """
 
-        elevation = np.array(elevation, dtype=np.float)
-        area = np.empty_like(elevation)
+        return self._array_comp(elevation, self._area)
 
-        with np.nditer([elevation, area], [], [['readonly'], ['writeonly']]) \
-                as it:
-            for e, a in it:
-                if e <= self._min_elevation:
-                    a[...] = 0
-                elif not np.isfinite(e):
-                    a[...] = np.nan
-                else:
-                    a[...] = self._area(e)
+    def top_width(self, elevation):
+        """Computes top width of this subsection
 
-        if area.size == 1:
-            return float(area)
-        else:
-            return area
+        Parameters
+        ----------
+        elevation : array_like
+            Elevations to compute top width
+
+        Returns
+        -------
+        array_like
+            Computed top width
+
+        """
+
+        return self._array_comp(elevation, self._top_width)
