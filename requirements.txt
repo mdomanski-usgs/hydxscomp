@@ -4,6 +4,7 @@ notebook
 numpy==1.18.4
 pylint==2.4.4
 recommonmark
+rope
 rstcheck
 Sphinx
 sphinx-autobuild
