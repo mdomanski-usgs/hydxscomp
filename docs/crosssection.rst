@@ -2,8 +2,5 @@
 Cross section interface
 =======================
 
-SubSection
-==========
-
-.. automodule:: anchovy.subsection
+.. automodule:: anchovy.crosssection
     :members:
