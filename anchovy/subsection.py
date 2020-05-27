@@ -41,6 +41,12 @@ class SubSection:
         if not np.all(np.diff(self._station) >= 0):
             raise ValueError("station must be in ascending order")
 
+    def _area(self, elevation):
+
+        s, e = self._wp(elevation)
+        nan_e = np.isnan(e)
+        return np.trapz(s[~nan_e], e[~nan_e])
+
     def _interp_station(self, s1, e1, s2, e2, e):
 
         slope = (s2 - s1)/(e2 - e1)
@@ -82,13 +88,33 @@ class SubSection:
                 e.append(e2)
                 s.append(s2)
 
+            if e2 > elevation and not np.isnan(e[-1]):
+                s.append(s[-1])
+                e.append(np.nan)
+
         if elevation > self._elevation[-1]:
             s.append(self._station[-1])
             e.append(elevation)
 
+        if np.isnan(e[-1]):
+            s.pop()
+            e.pop()
+
         return np.array(s), np.array(e)
 
     def area(self, elevation):
+        """Computes wetted area of this subsection
+
+        Parameters
+        ----------
+        elevation : array_like
+
+        Returns
+        -------
+        array_like
+            Computed area
+
+        """
 
         elevation = np.array(elevation, dtype=np.float)
         area = np.empty_like(elevation)
@@ -101,7 +127,7 @@ class SubSection:
                 elif not np.isfinite(e):
                     a[...] = np.nan
                 else:
-                    a[...] = np.trapz(*self._wp(e))
+                    a[...] = self._area(e)
 
         if area.size == 1:
             return float(area)
