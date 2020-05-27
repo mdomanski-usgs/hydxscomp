@@ -94,6 +94,23 @@ class TestSubSection(TestCase):
         e = np.linspace(0, z, 10)
         self.assertTrue(np.allclose(2*e**2*np.tan(np.pi/6), ss.area(e)))
 
+        # double triangle w/ shifted elevation
+        shift_e = 1.5
+        station = [0, 0.5, 1, 1.5, 2]
+        elevation = np.array([z, 0, z, 0, z]) + shift_e
+        ss = SubSection(station, elevation, roughness)
+        e = np.linspace(0, z, 10) + shift_e
+        self.assertTrue(np.allclose(2*(e - shift_e) **
+                                    2*np.tan(np.pi/6), ss.area(e)))
+
+        # double triangle w/ shifted station
+        shift_s = 1.5
+        station = np.array([0, 0.5, 1, 1.5, 2]) + shift_s
+        elevation = [z, 0, z, 0, z]
+        ss = SubSection(station, elevation, roughness)
+        e = np.linspace(0, z, 10)
+        self.assertTrue(np.allclose(2*e**2*np.tan(np.pi/6), ss.area(e)))
+
 
 if __name__ == '__main__':
     unittest.main()
