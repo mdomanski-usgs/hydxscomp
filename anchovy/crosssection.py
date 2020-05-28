@@ -242,6 +242,11 @@ class CrossSection:
         else:
             self._subsections = [SubSection(station, elevation, roughness)]
 
+    @staticmethod
+    def _interp_elevation(s1, e1, s2, e2, s):
+        slope = (e2 - e1)/(s2 - s1)
+        return slope * (s - s2) + e2
+
     def _sections(self, station, elevation, roughness, rough_stat):
 
         sections = []
@@ -255,27 +260,50 @@ class CrossSection:
 
         return sections
 
-    @staticmethod
-    def _split_arrays(station, elevation, rough_stat):
+    @classmethod
+    def _split_arrays(cls, station, elevation, sect_stat):
 
-        rough_elev = np.interp(rough_stat, station, elevation)
+        split_station = []
+        split_elevation = []
 
-        station = np.append(station, rough_stat)
-        station, index = np.unique(station, return_index=True)
+        j = 0
+        s = []
+        e = []
 
-        elevation = np.append(elevation, rough_elev)
-        elevation = elevation[index]
+        if sect_stat.ndim == 0:
+            sect_stat = sect_stat[np.newaxis]
 
-        break_arg = np.argwhere(np.isin(station, rough_stat))
+        for i in range(len(sect_stat)):
 
-        split_station = np.split(station, break_arg[:, 0])
-        split_elevation = np.split(elevation, break_arg[:, 0])
+            while station[j] < sect_stat[i]:
+                s.append(station[j])
+                e.append(elevation[j])
+                j += 1
 
-        for i in range(1, len(split_station)):
-            split_station[i - 1] = \
-                np.append(split_station[i-1], split_station[i][0])
-            split_elevation[i-1] = \
-                np.append(split_elevation[i-1], split_elevation[i][0])
+            s.append(sect_stat[i])
+            e_interp = cls._interp_elevation(station[j-1], elevation[j-1],
+                                             station[j], elevation[j],
+                                             sect_stat[i])
+            e.append(e_interp)
+
+            split_station.append(np.array(s))
+            split_elevation.append(np.array(e))
+
+            if sect_stat[i] != station[j]:
+                s = [split_station[-1][-1]]
+                e = [split_elevation[-1][-1]]
+            else:
+                s = []
+                e = []
+
+        # finish the rest of the station, elevation arrays
+        while j < len(station):
+            s.append(station[j])
+            e.append(elevation[j])
+            j += 1
+
+        split_station.append(np.array(s))
+        split_elevation.append(np.array(e))
 
         return split_station, split_elevation
 
