@@ -45,12 +45,12 @@ class SubSection:
 
     def _area(self, elevation):
 
-        s, e = self._wp(elevation)
+        s, e = self._wa_array(elevation)
         nan_e = np.isnan(e)
         return np.trapz(s[~nan_e], e[~nan_e])
 
     def _top_width(self, elevation):
-        s, e = self._wp(elevation)
+        s, e = self._wa_array(elevation)
         tw = 0
         for i in range(1, len(s)):
             if np.isnan(e[i-1]) or np.isnan(e[i]):
@@ -85,8 +85,21 @@ class SubSection:
         slope = (s2 - s1)/(e2 - e1)
         return slope * (e - e1) + s1
 
-    def _wp(self, elevation):
-        """Station, elevation arrays of wetted perimeter"""
+    def _wetted_perimeter(self, elevation):
+
+        s, e = self._wp_array(elevation)
+
+        wp = 0
+
+        for i in range(1, len(s)):
+            if np.isnan(e[i-1]) or np.isnan(e[i]):
+                continue
+            wp += np.sqrt((s[i]-s[i-1])**2 + (e[i]-e[i-1])**2)
+
+        return wp
+
+    def _wa_array(self, elevation):
+        """Station, elevation arrays of wetted area"""
 
         if elevation <= self._min_elevation:
             return np.nan, np.nan
@@ -135,13 +148,55 @@ class SubSection:
 
         return np.array(s), np.array(e)
 
+    def _wp_array(self, elevation):
+        """Station, elevation arrays of wetted perimeter"""
+
+        if elevation <= self._min_elevation:
+            return np.nan, np.nan
+
+        s = []
+        e = []
+
+        if self._elevation[0] <= elevation:
+            s.append(self._station[0])
+            e.append(self._elevation[0])
+
+        for i in range(1, len(self._station)):
+
+            e1 = self._elevation[i - 1]
+            e2 = self._elevation[i]
+
+            s1 = self._station[i - 1]
+            s2 = self._station[i]
+
+            # in between the previous coordinate and this coordinate
+            if (e1 < elevation and elevation < e2) or \
+                    (e2 < elevation and elevation < e1):
+                e.append(elevation)
+                s.append(self._interp_station(s1, e1, s2, e2, elevation))
+
+            # greater than or equal to this coordinate
+            if e2 <= elevation:
+                e.append(e2)
+                s.append(s2)
+
+            if e2 > elevation and not np.isnan(e[-1]):
+                s.append(s[-1])
+                e.append(np.nan)
+
+        if np.isnan(e[-1]):
+            s.pop()
+            e.pop()
+
+        return np.array(s), np.array(e)
+
     def area(self, elevation):
         """Computes wetted area of this subsection
 
         Parameters
         ----------
         elevation : array_like
-            Elevations to comptue area
+            Elevations for computing area
 
         Returns
         -------
@@ -157,7 +212,7 @@ class SubSection:
         Parameters
         ----------
         elevation : array_like
-            Elevations to compute top width
+            Elevations for computing top width
 
         Returns
         -------
@@ -166,6 +221,22 @@ class SubSection:
         """
 
         return self._array_comp(elevation, self._top_width)
+
+    def wetted_perimeter(self, elevation):
+        """Computes wetted perimeter of this subsection
+
+        Parameters
+        ----------
+        elevation : array_like
+            Elevations for computing wetted perimeter
+
+        Returns
+        -------
+        wetted_perimeter : float or ndarray
+
+        """
+
+        return self._array_comp(elevation, self._wetted_perimeter)
 
 
 class CrossSection:
@@ -334,7 +405,7 @@ class CrossSection:
         Parameters
         ----------
         elevation : array_like
-            Elevation for computing top_width.
+            Elevation for computing top width.
 
         Returns
         -------
@@ -348,3 +419,24 @@ class CrossSection:
             top_width += ss.top_width(elevation)
 
         return top_width
+
+    def wetted_perimeter(self, elevation):
+        """Computes the wetted perimeter for this cross section
+
+        Parameters
+        ----------
+        elevation : array_like
+            Elevation for computing wetted perimeter.
+
+        Returns
+        -------
+        wetted_perimeter : float or ndarray
+
+        """
+
+        wp = 0
+
+        for ss in self._subsections:
+            wp += ss.wetted_perimeter(elevation)
+
+        return wp
