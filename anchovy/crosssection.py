@@ -45,12 +45,12 @@ class SubSection:
 
     def _area(self, elevation):
 
-        s, e = self._wa_array(elevation)
+        s, e = self._sub_array(elevation, 'wa')
         nan_e = np.isnan(e)
         return np.trapz(s[~nan_e], e[~nan_e])
 
     def _top_width(self, elevation):
-        s, e = self._wa_array(elevation)
+        s, e = self._sub_array(elevation, 'wa')
         tw = 0
         for i in range(1, len(s)):
             if np.isnan(e[i-1]) or np.isnan(e[i]):
@@ -87,7 +87,7 @@ class SubSection:
 
     def _wetted_perimeter(self, elevation):
 
-        s, e = self._wp_array(elevation)
+        s, e = self._sub_array(elevation, 'wp')
 
         wp = 0
 
@@ -98,8 +98,19 @@ class SubSection:
 
         return wp
 
-    def _wa_array(self, elevation):
-        """Station, elevation arrays of wetted area"""
+    def _sub_array(self, elevation, array_type):
+        """Computes and returns sub arrays from station and elevation
+
+        Parameters
+        ----------
+        elevation : float
+            Elevation for computing sub arrays
+        array_type : {'wp', 'wa'}
+            Type of computation. Wetted perimeter or wetted area.
+
+        """
+
+        assert array_type == 'wp' or array_type == 'wa'
 
         if elevation <= self._min_elevation:
             return np.nan, np.nan
@@ -107,9 +118,10 @@ class SubSection:
         s = []
         e = []
 
-        if elevation > self._elevation[0]:
-            s.append(self._station[0])
-            e.append(elevation)
+        if array_type == 'wa':
+            if elevation > self._elevation[0]:
+                s.append(self._station[0])
+                e.append(elevation)
 
         if self._elevation[0] <= elevation:
             s.append(self._station[0])
@@ -138,51 +150,10 @@ class SubSection:
                 s.append(s[-1])
                 e.append(np.nan)
 
-        if elevation > self._elevation[-1]:
-            s.append(self._station[-1])
-            e.append(elevation)
-
-        if np.isnan(e[-1]):
-            s.pop()
-            e.pop()
-
-        return np.array(s), np.array(e)
-
-    def _wp_array(self, elevation):
-        """Station, elevation arrays of wetted perimeter"""
-
-        if elevation <= self._min_elevation:
-            return np.nan, np.nan
-
-        s = []
-        e = []
-
-        if self._elevation[0] <= elevation:
-            s.append(self._station[0])
-            e.append(self._elevation[0])
-
-        for i in range(1, len(self._station)):
-
-            e1 = self._elevation[i - 1]
-            e2 = self._elevation[i]
-
-            s1 = self._station[i - 1]
-            s2 = self._station[i]
-
-            # in between the previous coordinate and this coordinate
-            if (e1 < elevation and elevation < e2) or \
-                    (e2 < elevation and elevation < e1):
+        if array_type == 'wa':
+            if elevation > self._elevation[-1]:
+                s.append(self._station[-1])
                 e.append(elevation)
-                s.append(self._interp_station(s1, e1, s2, e2, elevation))
-
-            # greater than or equal to this coordinate
-            if e2 <= elevation:
-                e.append(e2)
-                s.append(s2)
-
-            if e2 > elevation and not np.isnan(e[-1]):
-                s.append(s[-1])
-                e.append(np.nan)
 
         if np.isnan(e[-1]):
             s.pop()
