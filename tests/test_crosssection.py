@@ -63,6 +63,30 @@ class TestCrossSection(TestCase):
         tw = 2*2*e*np.tan(np.pi/6)
         self.assertTrue(np.allclose(tw, xs.top_width(e)))
 
+    def test_wetted_perimeter(self):
+
+        # unit square
+        station = [0, 0, 1, 1]
+        elevation = [1, 0, 0, 1]
+        roughness = [0.035, 0.010, 0.035]
+        sect_stat = [0.25, 0.75]
+        xs = CrossSection(station, elevation, roughness, sect_stat)
+        e = np.linspace(0, 1, 10)
+        wp = 1 + 2*e
+        wp[0] = 0
+        self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
+
+        # double triangle
+        z = np.cos(np.arcsin(0.5))
+        station = [0, 0.5, 1, 1.5, 2]
+        elevation = [z, 0, z, 0, z]
+        roughness = [0.035, 0.035]
+        sect_stat = 1
+        xs = CrossSection(station, elevation, roughness, sect_stat)
+        e = np.linspace(0, z, 10)
+        wp = 2*2*e/np.cos(np.pi/6)
+        self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
+
 
 if __name__ == '__main__':
     unittest.main()
