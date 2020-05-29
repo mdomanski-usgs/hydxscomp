@@ -75,28 +75,23 @@ class SubSection:
                 else:
                     a[...] = func(e)
 
-        if val.size == 1:
+        if elevation.ndim == 0:
             return float(val)
         else:
             return val
+
+    def _conveyance(self, elevation):
+
+        area = self._area(elevation)
+        wetted_perimeter = self._wetted_perimeter(elevation)
+        hydraulic_radius = area / wetted_perimeter
+
+        return 1.486/self._roughness * hydraulic_radius**(2/3) * area
 
     def _interp_station(self, s1, e1, s2, e2, e):
 
         slope = (s2 - s1)/(e2 - e1)
         return slope * (e - e1) + s1
-
-    def _wetted_perimeter(self, elevation):
-
-        s, e = self._sub_array(elevation, 'wp')
-
-        wp = 0
-
-        for i in range(1, len(s)):
-            if np.isnan(e[i-1]) or np.isnan(e[i]):
-                continue
-            wp += np.sqrt((s[i]-s[i-1])**2 + (e[i]-e[i-1])**2)
-
-        return wp
 
     def _sub_array(self, elevation, array_type):
         """Computes and returns sub arrays from station and elevation
@@ -161,6 +156,19 @@ class SubSection:
 
         return np.array(s), np.array(e)
 
+    def _wetted_perimeter(self, elevation):
+
+        s, e = self._sub_array(elevation, 'wp')
+
+        wp = 0
+
+        for i in range(1, len(s)):
+            if np.isnan(e[i-1]) or np.isnan(e[i]):
+                continue
+            wp += np.sqrt((s[i]-s[i-1])**2 + (e[i]-e[i-1])**2)
+
+        return wp
+
     def area(self, elevation):
         """Computes wetted area of this subsection
 
@@ -176,6 +184,22 @@ class SubSection:
         """
 
         return self._array_comp(elevation, self._area)
+
+    def conveyance(self, elevation):
+        """Computes conveyance for this subsection
+
+        Parameters
+        ----------
+        elevation : array_like
+            Elevation for computing conveyance.
+
+        Returns
+        -------
+        conveyance : float or ndarray
+
+        """
+
+        return self._array_comp(elevation, self._conveyance)
 
     def top_width(self, elevation):
         """Computes top width of this subsection
@@ -370,6 +394,27 @@ class CrossSection:
 
         return area
 
+    def conveyance(self, elevation):
+        """Computes conveyance for this cross section
+
+        Parameters
+        ----------
+        elevation : array_like
+            Elevation to compute conveyance.
+
+        Returns
+        -------
+        conveyance : float or ndarray
+
+        """
+
+        conveyance = 0
+
+        for ss in self._subsections:
+            conveyance += ss.conveyance(elevation)
+
+        return conveyance
+
     def top_width(self, elevation):
         """Computes top width for this cross section
 
@@ -390,6 +435,50 @@ class CrossSection:
             top_width += ss.top_width(elevation)
 
         return top_width
+
+    def velocity_coeff(self, elevation):
+        """Computes velocity coefficient (alpha) for this cross section
+
+        Parameters
+        ----------
+        elevation : array_like
+            Elevations to compute velocity coefficient.
+
+        Returns
+        -------
+        velocity_coeff : float or ndarray
+
+        """
+
+        elevation = np.array(elevation, dtype=np.float)
+        elevation_dims = elevation.ndim
+        if elevation_dims == 0:
+            elevation = elevation[np.newaxis]
+
+        sum = np.zeros_like(elevation)
+
+        for ss in self._subsections:
+            a_ss = ss.area(elevation)
+            k_ss = ss.conveyance(elevation)
+
+            zero_a = a_ss == 0
+
+            if np.any(~zero_a):
+                sum[~zero_a] += (k_ss[~zero_a]**3)/(a_ss[~zero_a]**2)
+
+        area = self.area(elevation)
+        k_t = self.conveyance(elevation)
+
+        zero_k_t = k_t == 0
+        velocity_coeff = np.zeros_like(elevation)
+        velocity_coeff[zero_k_t] = np.nan
+        velocity_coeff[~zero_k_t] = area[~zero_k_t]**2 / \
+            k_t[~zero_k_t]**3*sum[~zero_k_t]
+
+        if elevation_dims == 0:
+            return float(velocity_coeff)
+        else:
+            return velocity_coeff
 
     def wetted_perimeter(self, elevation):
         """Computes the wetted perimeter for this cross section
