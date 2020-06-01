@@ -187,7 +187,7 @@ class SectionArray:
 
         Returns
         -------
-        area : float or ndarray
+        area : float or numpy.ndarray
 
         """
 
@@ -258,7 +258,7 @@ class SectionArray:
 
         Returns
         -------
-        perimeter : float or ndarray
+        perimeter : float or numpy.ndarray
 
         """
 
@@ -323,7 +323,7 @@ class SectionArray:
 
         Returns
         -------
-        top_width : float or ndarray
+        top_width : float or numpy.ndarray
         """
 
         return self._array_comp(elevation, self._top_width)
@@ -360,7 +360,7 @@ class SubSection:
 
         Returns
         -------
-        area : float or ndarray
+        area : float or numpy.ndarray
 
         """
 
@@ -376,7 +376,7 @@ class SubSection:
 
         Returns
         -------
-        conveyance : float or ndarray
+        conveyance : float or numpy.ndarray
 
         """
 
@@ -396,7 +396,7 @@ class SubSection:
 
         Returns
         -------
-        top_width : float or ndarray
+        top_width : float or numpy.ndarray
 
         """
 
@@ -412,7 +412,7 @@ class SubSection:
 
         Returns
         -------
-        wetted_perimeter : float or ndarray
+        wetted_perimeter : float or numpy.ndarray
 
         """
 
@@ -496,7 +496,7 @@ class CrossSection:
 
         Returns
         -------
-        area : float or ndarray
+        area : float or numpy.ndarray
 
         """
 
@@ -512,7 +512,7 @@ class CrossSection:
 
         Returns
         -------
-        conveyance : float or ndarray
+        conveyance : float or numpy.ndarray
 
         """
 
@@ -533,7 +533,7 @@ class CrossSection:
 
         Returns
         -------
-        top_width : float or ndarray
+        top_width : float or numpy.ndarray
 
         """
 
@@ -549,7 +549,7 @@ class CrossSection:
 
         Returns
         -------
-        velocity_coeff : float or ndarray
+        velocity_coeff : float or numpy.ndarray
 
         """
 
@@ -593,7 +593,7 @@ class CrossSection:
 
         Returns
         -------
-        wetted_perimeter : float or ndarray
+        wetted_perimeter : float or numpy.ndarray
 
         """
 
