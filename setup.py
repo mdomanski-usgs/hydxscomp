@@ -7,8 +7,13 @@ except BaseException:
     sphinx_imported = False
 
 name = 'anchovy'
-version = '0.0'
-release = '0.0.1'
+
+about = {}
+with open('anchovy/__init__.py') as fp:
+    exec(fp.read(), about)
+release = about['__release__']
+version = about['__version__']
+
 dev_status = 'Development Status :: 1 - Planning'
 
 install_requires = ['matplotlib', 'numpy']
