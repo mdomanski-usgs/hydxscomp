@@ -57,4 +57,5 @@ html_theme = 'sphinxdoc'
 
 html_show_copyright = False
 
-intersphinx_mapping = {'numpy': ('http://docs.scipy.org/doc/numpy/', None)}
+intersphinx_mapping = {'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+                       'matplotlib': ('https://matplotlib.org/', None)}

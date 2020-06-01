@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
 import numpy as np
 
 
@@ -145,7 +147,7 @@ class SectionArray:
                 e.append(e2)
                 s.append(s2)
 
-            if e2 > elevation and not np.isnan(e[-1]):
+            if len(e) > 0 and e2 > elevation and not np.isnan(e[-1]):
                 s.append(s[-1])
                 e.append(np.nan)
 
@@ -192,6 +194,18 @@ class SectionArray:
         """
 
         return self._array_comp(elevation, self._area)
+
+    def coordinates(self):
+        """Returns copies of the coordinate arrays in this
+        array
+
+        Returns
+        -------
+        station, elevation : numpy.ndarray, numpy.ndarray
+
+        """
+
+        return self._station.copy(), self._elevation.copy()
 
     def copy(self):
         """Returns a copy of this array
@@ -263,6 +277,10 @@ class SectionArray:
         """
 
         return self._array_comp(elevation, self._perimeter)
+
+    def perimeter_array(self, elevation):
+
+        return self._sub_array(elevation, 'p')
 
     def split(self, sect_stat):
 
@@ -522,6 +540,77 @@ class CrossSection:
             conveyance += ss.conveyance(elevation)
 
         return conveyance
+
+    def coordinates(self):
+        """Returns a copy of the coordinates in this cross section
+
+        Returns
+        -------
+        numpy.ndarray, numpy.ndarray : station, elevation
+
+        """
+
+        return self._array.coordinates()
+
+    def plot(self, elevation=None, ax=None):
+        """Plots this cross section
+
+        Parameters
+        ----------
+        elevation : float or None, optional
+            Elevation for plotting characteristics. The default is
+            None, which doesn't plot characteristics.
+        ax : matplotlib.axes.Axes or None, optional
+            Axes to plot on. The default is None, which creates a
+            new axes. If not None, `ax` is returned.
+
+        Returns
+        -------
+        ax : matplotlib.axes.Axes
+
+        """
+
+        s, e = self._array.coordinates()
+
+        if ax is None:
+
+            ax = plt.axes()
+
+        ax.plot(s, e, 'k', marker='.', label='Coordinates')
+
+        if elevation is not None:
+
+            elevation = float(elevation)
+
+            if elevation > self._array.min_elevation():
+
+                wp = self._array.perimeter_array(elevation)
+                wp_s, wp_e = wp.coordinates()
+                plt.plot(wp_s, wp_e, 'g', linewidth=5,
+                         label='Wetted perimeter')
+
+                e_nan = np.isnan(wp_e)
+                tw_e = elevation*np.ones_like(wp_e)
+                tw_e[e_nan] = np.nan
+                plt.plot(wp_s, tw_e, 'b', linewidth=2.5, label='Top width')
+
+                xs_area_zy = [*zip(wp_s, wp_e)]
+
+                if elevation > wp_e[0]:
+                    xs_area_zy.insert(0, (wp_s[0], elevation))
+                if elevation > wp_e[-1]:
+                    xs_area_zy.append((wp_s[-1], elevation))
+
+                if len(xs_area_zy) > 2:
+                    poly = Polygon(xs_area_zy, facecolor='b',
+                                   alpha=0.25, label='Wetted area')
+                    ax.add_patch(poly)
+
+        ax.legend()
+        ax.set_xlabel('Station, in ft')
+        ax.set_ylabel('Elevation, in ft')
+
+        return ax
 
     def top_width(self, elevation):
         """Computes top width for this cross section
