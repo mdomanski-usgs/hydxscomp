@@ -103,6 +103,26 @@ class TestSectionArray(TestCase):
         e = np.linspace(0, z, 10)
         self.assertTrue(np.allclose(2*e**2*np.tan(np.pi/6), sa.area(e)))
 
+    def test_perimeter(self):
+
+        # unit square
+        station = [0, 0, 1, 1]
+        elevation = [1, 0, 0, 1]
+        sa = SectionArray(station, elevation)
+        e = np.linspace(0, 1, 10)
+        perimeter = 1 + 2*e
+        perimeter[0] = 0
+        self.assertTrue(np.allclose(perimeter, sa.perimeter(e)))
+
+        # double triangle
+        z = np.cos(np.arcsin(0.5))
+        station = [0, 0.5, 1, 1.5, 2]
+        elevation = [z, 0, z, 0, z]
+        sa = SectionArray(station, elevation)
+        e = np.linspace(0, z, 10)
+        perimeter = 2*2*e/np.cos(np.pi/6)
+        self.assertTrue(np.allclose(perimeter, sa.perimeter(e)))
+
     def test_top_width(self):
 
         # unit square
