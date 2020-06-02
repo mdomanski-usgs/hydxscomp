@@ -398,11 +398,33 @@ class SubSection:
 
         """
 
-        area = self._array.area(elevation)
-        wetted_perimeter = self._array.perimeter(elevation)
-        hydraulic_radius = area / wetted_perimeter
+        area = self.area(elevation)
+        hydraulic_radius = self.hydraulic_radius(elevation)
 
         return 1.486/self._roughness * hydraulic_radius**(2/3) * area
+
+    def hydraulic_radius(self, elevation):
+        """Computes hydraulic radius for this subsection
+
+        Parameters
+        ----------
+        elevation : array_like
+            Elevation for computing hydraulic radius.
+
+        Returns
+        -------
+        hydraulic_radius : float or numpy.ndarray
+
+        """
+
+        area = self.area(elevation)
+        wetted_perimeter = self.wetted_perimeter(elevation)
+
+        hydraulic_radius = np.zeros_like(elevation)
+        zeros = (area == 0) & (wetted_perimeter == 0)
+        hydraulic_radius[~zeros] = area[~zeros]/wetted_perimeter[~zeros]
+
+        return hydraulic_radius
 
     def top_width(self, elevation):
         """Computes top width of this subsection
@@ -570,9 +592,8 @@ class CrossSection:
         top_width = self.top_width(elevation)
 
         hydraulic_depth = np.zeros_like(elevation)
-        zero_tw = top_width == 0
-        hydraulic_depth[~zero_tw] = area[~zero_tw]/top_width[~zero_tw]
-        hydraulic_depth[zero_tw] = np.nan
+        zeros = (area == 0) & (top_width == 0)
+        hydraulic_depth[~zeros] = area[~zeros]/top_width[~zeros]
 
         return hydraulic_depth
 
@@ -594,9 +615,8 @@ class CrossSection:
         wetted_perimeter = self.wetted_perimeter(elevation)
 
         hydraulic_radius = np.zeros_like(elevation)
-        zero_tw = wetted_perimeter == 0
-        hydraulic_radius[~zero_tw] = area[~zero_tw]/wetted_perimeter[~zero_tw]
-        hydraulic_radius[zero_tw] = np.nan
+        zeros = (area == 0) & (wetted_perimeter == 0)
+        hydraulic_radius[~zeros] = area[~zeros]/wetted_perimeter[~zeros]
 
         return hydraulic_radius
 
