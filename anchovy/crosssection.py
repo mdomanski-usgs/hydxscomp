@@ -515,6 +515,8 @@ class CrossSection:
             array = SectionArray(station, elevation)
             self._subsections = [SubSection(array, roughness)]
 
+        self._sect_stat = sect_stat
+
     def _sections(self, station, elevation, roughness, rough_stat):
 
         sections = []
@@ -673,6 +675,12 @@ class CrossSection:
                     poly = Polygon(xs_area_zy, facecolor='b',
                                    alpha=0.25, label='Wetted area')
                     ax.add_patch(poly)
+
+        if self._sect_stat is not None:
+            sect_elev = np.interp(self._sect_stat, s, e)
+            ax.plot(self._sect_stat, sect_elev, linestyle='None',
+                    marker='s', markerfacecolor='r', markeredgecolor='r',
+                    label='Sub section')
 
         ax.legend()
         ax.set_xlabel('Station, in ft')
