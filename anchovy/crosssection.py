@@ -426,6 +426,17 @@ class SubSection:
 
         return hydraulic_radius
 
+    def roughness(self):
+        """Returns the roughness of this subsection
+
+        Returns
+        -------
+        roughness : float
+
+        """
+
+        return self._roughness
+
     def top_width(self, elevation):
         """Computes top width of this subsection
 
@@ -687,6 +698,30 @@ class CrossSection:
         ax.set_ylabel('Elevation, in ft')
 
         return ax
+
+    def roughness(self, elevation):
+        """Computes roughness weighted by wetted perimeter for this
+        cross section
+
+        Parameters
+        ----------
+        elevation : array_like
+            Elevations for computing roughness
+
+        Returns
+        -------
+        roughness : float or numpy.ndarray
+
+        """
+
+        wetted_perimeter = self.wetted_perimeter(elevation)
+
+        sigma = 0
+
+        for ss in self. _subsections:
+            sigma += ss.roughness() * ss.wetted_perimeter(elevation)
+
+        return sigma/wetted_perimeter
 
     def top_width(self, elevation):
         """Computes top width for this cross section
