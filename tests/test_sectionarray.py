@@ -123,6 +123,41 @@ class TestSectionArray(TestCase):
         perimeter = 2*2*e/np.cos(np.pi/6)
         self.assertTrue(np.allclose(perimeter, sa.perimeter(e)))
 
+    def test_split(self):
+
+        station = [0, 0, 300, 300, 600, 600, 900, 900]
+        elevation = [9, 3, 3, 0, 0, 3, 3, 9]
+
+        sect_stat = [300, 600]
+
+        start_station = [0, 300, 600]
+        end_station = [300, 600, 900]
+
+        start_elevation = [9, 3, 3]
+        end_elevation = [3, 3, 9]
+
+        array = SectionArray(station, elevation)
+
+        stages = np.linspace(0, 9)
+
+        perimeter_sum = 0
+        area_sum = 0
+        tw_sum = 0
+
+        for i, sa in enumerate(array.split(sect_stat)):
+            s, e = sa.coordinates()
+            self.assertEqual(start_station[i], s[0])
+            self.assertEqual(end_station[i], s[-1])
+            self.assertEqual(start_elevation[i], e[0])
+            self.assertEqual(end_elevation[i], e[-1])
+            perimeter_sum += sa.perimeter(stages)
+            area_sum += sa.area(stages)
+            tw_sum += sa.top_width(stages)
+
+        self.assertTrue(np.allclose(perimeter_sum, array.perimeter(stages)))
+        self.assertTrue(np.allclose(area_sum, array.area(stages)))
+        self.assertTrue(np.allclose(tw_sum, array.top_width(stages)))
+
     def test_top_width(self):
 
         # unit square
