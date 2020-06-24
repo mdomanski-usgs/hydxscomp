@@ -283,6 +283,20 @@ class SectionArray:
         return self._sub_array(elevation, 'p')
 
     def split(self, sect_stat):
+        """Creates subarrays of this section array based on
+        sect_stat
+
+        Parameters
+        ----------
+        sect_stat : array_like
+            Subarray stationing
+
+        Returns
+        -------
+        list
+            List of subarrays
+
+        """
 
         split_station = []
         split_elevation = []
@@ -291,23 +305,42 @@ class SectionArray:
         s = []
         e = []
 
+        sect_stat = np.array(sect_stat)
+
         if sect_stat.ndim == 0:
             sect_stat = sect_stat[np.newaxis]
 
+        # loop through each station value in sect_stat
         for i in range(len(sect_stat)):
 
+            # while the j-th station in this array is less than the i-th
+            # section station, append it to the list and increment to the next
+            # station in this array
             while self._station[j] < sect_stat[i]:
                 s.append(self._station[j])
                 e.append(self._elevation[j])
                 j += 1
 
-            s.append(sect_stat[i])
-            e_interp = self._interp_elevation(self._station[j-1],
-                                              self._elevation[j-1],
-                                              self._station[j],
-                                              self._elevation[j],
-                                              sect_stat[i])
-            e.append(e_interp)
+            s.append(sect_stat[i])  # append the i-th section station
+
+            # if the last station added (sect_stat[i]) is equal to the next
+            # station and the current elevation value is less than the next
+            # elevation value
+            if (j < len(self._station) - 1) and (s[-1] == self._station[j+1]) \
+                    and (self._elevation[j] < self._elevation[j+1]):
+
+                # add the
+                e.append(self._elevation[j])
+                s.append(s[-1])
+                e.append(self._elevation[j+1])
+                j += 1
+            else:
+                e_interp = self._interp_elevation(self._station[j-1],
+                                                  self._elevation[j-1],
+                                                  self._station[j],
+                                                  self._elevation[j],
+                                                  sect_stat[i])
+                e.append(e_interp)
 
             split_station.append(np.array(s))
             split_elevation.append(np.array(e))
@@ -383,6 +416,18 @@ class SubSection:
         """
 
         return self._array.area(elevation)
+
+    def array(self):
+        """Returns a copy of the section array of this
+        subsection
+
+        Returns
+        -------
+        SectionArray
+
+        """
+
+        return self._array.copy()
 
     def conveyance(self, elevation):
         """Computes conveyance for this subsection
@@ -687,9 +732,15 @@ class CrossSection:
                                    alpha=0.25, label='Wetted area')
                     ax.add_patch(poly)
 
-        if self._sect_stat is not None:
-            sect_elev = np.interp(self._sect_stat, s, e)
-            ax.plot(self._sect_stat, sect_elev, linestyle='None',
+        if len(self._subsections) > 1:
+            s, e = self._subsections[0].array().coordinates()
+            sect_elev = [e[-1]]
+            sect_station = [s[-1]]
+            for i in range(1, len(self._subsections)):
+                s, e = self._subsections[i].array().coordinates()
+                sect_station.append(s[0])
+                sect_elev.append(e[0])
+            ax.plot(sect_station, sect_elev, linestyle='None',
                     marker='s', markerfacecolor='r', markeredgecolor='r',
                     label='Sub section')
 
