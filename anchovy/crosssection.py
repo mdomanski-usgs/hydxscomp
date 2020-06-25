@@ -790,8 +790,9 @@ class CrossSection:
 
         return self._array.top_width(elevation)
 
-    def velocity_coeff(self, elevation):
-        """Computes velocity coefficient (alpha) for this cross section
+    def vel_coeff(self, elevation):
+        """Computes velocity coefficient (alpha) for this cross
+        section
 
         Parameters
         ----------
@@ -800,7 +801,7 @@ class CrossSection:
 
         Returns
         -------
-        velocity_coeff : float or numpy.ndarray
+        vel_coeff : float or numpy.ndarray
 
         """
 
@@ -809,7 +810,8 @@ class CrossSection:
         if elevation_dims == 0:
             elevation = elevation[np.newaxis]
 
-        sum = np.zeros_like(elevation)
+        # to hold summed terms
+        sigma = np.zeros_like(elevation)
 
         for ss in self._subsections:
             a_ss = ss.area(elevation)
@@ -818,7 +820,7 @@ class CrossSection:
             zero_a = a_ss == 0
 
             if np.any(~zero_a):
-                sum[~zero_a] += (k_ss[~zero_a]**3)/(a_ss[~zero_a]**2)
+                sigma[~zero_a] += (k_ss[~zero_a]**3)/(a_ss[~zero_a]**2)
 
         area = self.area(elevation)
         k_t = self.conveyance(elevation)
@@ -827,12 +829,60 @@ class CrossSection:
         velocity_coeff = np.zeros_like(elevation)
         velocity_coeff[zero_k_t] = np.nan
         velocity_coeff[~zero_k_t] = area[~zero_k_t]**2 / \
-            k_t[~zero_k_t]**3*sum[~zero_k_t]
+            k_t[~zero_k_t]**3*sigma[~zero_k_t]
 
         if elevation_dims == 0:
             return float(velocity_coeff)
         else:
             return velocity_coeff
+
+    def vel_dist_factor(self, elevation):
+        """Computes the velocity distribution factor (beta) for this
+        cross section
+
+        Parameters
+        ----------
+        elevation : array_like
+            Elevations to compute velocity distribution factor
+
+        Returns
+        -------
+        vel_dist_factor : float or numpy.ndarray
+
+        """
+
+        elevation = np.array(elevation, dtype=np.float)
+        elevation_dims = elevation.ndim
+        if elevation_dims == 0:
+            elevation = elevation[np.newaxis]
+
+        # to hold summed terms
+        sigma = np.zeros_like(elevation)
+
+        for ss in self._subsections:
+            a_ss = ss.area(elevation)
+            k_ss = ss.conveyance(elevation)
+
+            zero_a = a_ss == 0
+
+            if np.any(~zero_a):
+                sigma[~zero_a] += (k_ss[~zero_a]**2)/(a_ss[~zero_a])
+
+        # total
+        area = self.area(elevation)
+        k_t = self.conveyance(elevation)
+
+        # set zero conveyance elements to nan and avoid divide by zero warning
+        zero_k_t = k_t == 0
+        vel_dist_fact = np.zeros_like(elevation)
+        vel_dist_fact[zero_k_t] = np.nan
+        vel_dist_fact[~zero_k_t] = area[~zero_k_t] / \
+            k_t[~zero_k_t]*sigma[~zero_k_t]
+
+        if elevation_dims == 0:
+            return float(vel_dist_fact)
+        else:
+            return vel_dist_fact
 
     def wetted_perimeter(self, elevation):
         """Computes the wetted perimeter for this cross section
