@@ -877,7 +877,7 @@ class CrossSection:
         vel_dist_fact = np.zeros_like(elevation)
         vel_dist_fact[zero_k_t] = np.nan
         vel_dist_fact[~zero_k_t] = area[~zero_k_t] / \
-            k_t[~zero_k_t]*sigma[~zero_k_t]
+            k_t[~zero_k_t]**2*sigma[~zero_k_t]
 
         if elevation_dims == 0:
             return float(vel_dist_fact)
