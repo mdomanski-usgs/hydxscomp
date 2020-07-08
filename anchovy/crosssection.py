@@ -712,13 +712,13 @@ class CrossSection:
 
                 wp = self._array.perimeter_array(elevation)
                 wp_s, wp_e = wp.coordinates()
-                plt.plot(wp_s, wp_e, 'g', linewidth=5,
-                         label='Wetted perimeter')
+                ax.plot(wp_s, wp_e, 'g', linewidth=5,
+                        label='Wetted perimeter')
 
                 e_nan = np.isnan(wp_e)
                 tw_e = elevation*np.ones_like(wp_e)
                 tw_e[e_nan] = np.nan
-                plt.plot(wp_s, tw_e, 'b', linewidth=2.5, label='Top width')
+                ax.plot(wp_s, tw_e, 'b', linewidth=2.5, label='Top width')
 
                 xs_area_zy = [*zip(wp_s, wp_e)]
 
