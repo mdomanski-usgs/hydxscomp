@@ -76,6 +76,11 @@ class TestCrossSection(TestCase):
         wp[0] = 0
         self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
 
+        # wetted perimeter should be constant above highest elevation
+        e = np.linspace(1, 2, 10)
+        wp = 3
+        self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
+
         # double triangle
         z = np.cos(np.arcsin(0.5))
         station = [0, 0.5, 1, 1.5, 2]
@@ -86,6 +91,10 @@ class TestCrossSection(TestCase):
         e = np.linspace(0, z, 10)
         wp = 2*2*e/np.cos(np.pi/6)
         self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
+
+        # wetted perimeter should be constant above highest elevation
+        e = np.linspace(z, z+1, 10)
+        self.assertTrue(wp[-1], xs.wetted_perimeter(e))
 
 
 if __name__ == '__main__':
