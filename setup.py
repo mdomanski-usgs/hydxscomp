@@ -1,10 +1,19 @@
+from distutils import cmd
 from setuptools import setup
+import unittest
+
 
 try:
     from sphinx.setup_command import BuildDoc
     sphinx_imported = True
-except BaseException:
+except ImportError:
     sphinx_imported = False
+
+try:
+    from coverage import Coverage
+    coverage_imported = True
+except ImportError:
+    coverage_imported = False
 
 name = 'anchovy'
 
@@ -14,7 +23,7 @@ with open('anchovy/__init__.py') as fp:
 release = about['__release__']
 version = about['__version__']
 
-dev_status = 'Development Status :: 1 - Planning'
+dev_status = 'Development Status :: 3 - Alpha'
 
 install_requires = ['matplotlib', 'numpy']
 
@@ -49,5 +58,37 @@ if sphinx_imported:
         'source_dir': ('setup.py', docs_source),
         'build_dir': ('setup.py', docs_build_dir),
         'builder': ('setup.py', docs_builder)}}
+
+if coverage_imported:
+
+    import test_anchovy
+
+    class CoverageCommand(cmd.Command):
+        description = 'generates a coverage report of the anchovy unit tests'
+        user_options = []
+
+        def initialize_options(self):
+            pass
+
+        def finalize_options(self):
+            pass
+
+        def run(self):
+            cov = Coverage()
+            cov.start()
+            test_loader = unittest.defaultTestLoader
+            test_suite = test_anchovy.load_tests(test_loader)
+            unittest.TextTestRunner().run(test_suite)
+            cov.stop()
+            cov.save()
+            cov.html_report(omit=["*/env/*", "*/tests/*", "test_anchovy.py"])
+
+    if sphinx_imported:
+        cmdclass['coverage'] = CoverageCommand
+    else:
+        cmdclass = {'coverage': CoverageCommand}
+
+    setup_kwargs['cmdclass'] = cmdclass
+
 
 setup(**setup_kwargs)

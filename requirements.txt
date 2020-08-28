@@ -1,4 +1,5 @@
 autopep8==1.5.2
+coverage
 matplotlib==3.2.1
 notebook
 numpy==1.18.4
