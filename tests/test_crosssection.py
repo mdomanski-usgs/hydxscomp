@@ -94,7 +94,40 @@ class TestCrossSection(TestCase):
 
         # wetted perimeter should be constant above highest elevation
         e = np.linspace(z, z+1, 10)
-        self.assertTrue(wp[-1], xs.wetted_perimeter(e))
+        self.assertTrue(np.allclose(wp[-1], xs.wetted_perimeter(e)))
+
+    def test_wetted_perimeter_vwall(self):
+        """Test wetted perimeter for vertical wall extension cases"""
+
+        # unit square
+        station = [0, 0, 1, 1]
+        elevation = [1, 0, 0, 1]
+        roughness = [0.035, 0.010, 0.035]
+        sect_stat = [0.25, 0.75]
+        xs = CrossSection(station, elevation, roughness, sect_stat, True)
+        e = np.linspace(0, 1, 10)
+        wp = 1 + 2*e
+        wp[0] = 0
+        self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
+
+        e = np.linspace(1, 2, 10)
+        wp = wp[-1] + 2*(e - 1)
+        self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
+
+        # double triangle
+        z = np.cos(np.arcsin(0.5))
+        station = [0, 0.5, 1, 1.5, 2]
+        elevation = [z, 0, z, 0, z]
+        roughness = [0.035, 0.035]
+        sect_stat = 1
+        xs = CrossSection(station, elevation, roughness, sect_stat, True)
+        e = np.linspace(0, z, 10)
+        wp = 2*2*e/np.cos(np.pi/6)
+        self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
+
+        e = np.linspace(z, 2*z, 10)
+        wp = wp[-1] + 2*(e - z)
+        self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
 
 
 if __name__ == '__main__':
