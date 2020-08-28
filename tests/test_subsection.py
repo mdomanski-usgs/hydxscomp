@@ -27,6 +27,25 @@ class TestSubSection(TestCase):
             ValueError, "roughness must be finite",
             SubSection, *args)
 
+    def test_perimeter(self):
+
+        station = [0, 1]
+        elevation = [0, 0]
+        roughness = 0.035
+
+        section_array = SectionArray(station, elevation)
+        ss = SubSection(section_array, roughness)
+        self.assertEqual(ss.wetted_perimeter(1), 1)
+
+        ss_l_wall = SubSection(section_array, roughness, 'l')
+        self.assertEqual(ss_l_wall.wetted_perimeter(1), 2)
+
+        ss_r_wall = SubSection(section_array, roughness, 'r')
+        self.assertEqual(ss_r_wall.wetted_perimeter(1), 2)
+
+        ss_lr_wall = SubSection(section_array, roughness, 'lr')
+        self.assertEqual(ss_lr_wall.wetted_perimeter(1), 3)
+
 
 if __name__ == '__main__':
     unittest.main()
