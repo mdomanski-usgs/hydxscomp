@@ -286,9 +286,12 @@ class SectionArray:
         args = [wall]
         return self._array_comp(elevation, self._perimeter, *args)
 
-    def perimeter_array(self, elevation):
+    def perimeter_array(self, elevation, wall=None):
 
-        return self._sub_array(elevation, 'lr')
+        if wall not in [None, 'l', 'r', 'lr']:
+            raise ValueError("Invalid wall kwarg: {}".format(wall))
+
+        return self._sub_array(elevation, wall)
 
     def split(self, sect_stat):
         """Creates subarrays of this section array based on
@@ -396,18 +399,23 @@ class SubSection:
     section_array : SectionArray
     roughness : float
         Manning's roughness coefficient, in s/m**(1/3)
+    wall : {None, 'l', 'r', 'lr'}, optional
 
     """
 
-    def __init__(self, section_array, roughness):
+    def __init__(self, section_array, roughness, wall=None):
+
+        self._roughness = float(roughness)
+        if not np.isfinite(self._roughness):
+            raise ValueError("roughness must be finite")
+
+        if wall not in [None, 'l', 'r', 'lr']:
+            raise ValueError("Invalid value for wall: {}".format(wall))
+        self._wall = wall
 
         self._array = section_array.copy()
 
-        self._roughness = float(roughness)
         self._min_elevation = self._array.min_elevation()
-
-        if not np.isfinite(self._roughness):
-            raise ValueError("roughness must be finite")
 
     def area(self, elevation):
         """Computes wetted area of this subsection
@@ -520,7 +528,7 @@ class SubSection:
 
         """
 
-        return self._array.perimeter(elevation)
+        return self._array.perimeter(elevation, self._wall)
 
 
 class CrossSection:
@@ -542,7 +550,7 @@ class CrossSection:
         than one. Values must be within the range of `station`
         (exclusive). The number of elements must be one less than
         the number of elements in `roughness`.
-    vwall : boolean, optional
+    wall : boolean, optional
         Include a vertical wall with friction properties in the
         computation of the wetted perimeter when the elevation
         exceeds the cross section geometry elevation on the
@@ -552,10 +560,10 @@ class CrossSection:
     """
 
     def __init__(self, station, elevation, roughness, sect_stat=None,
-                 vwall=False):
+                 wall=False):
 
         self._array = SectionArray(station, elevation)
-        self._vwall = bool(vwall)
+        self._wall = bool(wall)
 
         roughness = np.array(roughness, dtype=np.float)
 
@@ -581,22 +589,34 @@ class CrossSection:
                     raise ValueError("rough_stat must be in ascending order")
 
         if roughness.size > 1:
-            self._subsections = self._sections(
-                station, elevation, roughness, sect_stat)
+            self._subsections = \
+                self._sections(self._array, station, elevation,
+                               roughness, sect_stat, wall)
         else:
             array = SectionArray(station, elevation)
-            self._subsections = [SubSection(array, roughness)]
+            if self._wall:
+                self._subsections = [SubSection(array, roughness, 'lr')]
+            else:
+                self._subsections = [SubSection(array, roughness)]
 
         self._sect_stat = sect_stat
 
-    def _sections(self, station, elevation, roughness, rough_stat):
+    @staticmethod
+    def _sections(array, station, elevation, roughness, rough_stat, wall):
 
         sections = []
 
-        split_arrays = self._array.split(rough_stat)
+        split_arrays = array.split(rough_stat)
+
+        n_sections = len(split_arrays)
 
         for i, n in enumerate(roughness):
-            sections.append(SubSection(split_arrays[i], n))
+            if i == 0 and wall:
+                sections.append(SubSection(split_arrays[i], n, 'l'))
+            elif i == n_sections - 1 and wall:
+                sections.append(SubSection(split_arrays[i], n, 'r'))
+            else:
+                sections.append(SubSection(split_arrays[i], n))
 
         return sections
 
@@ -720,13 +740,18 @@ class CrossSection:
 
         ax.plot(s, e, 'k', marker='.', label='Coordinates')
 
+        if self._wall:
+            wall = 'lr'
+        else:
+            wall = None
+
         if elevation is not None:
 
             elevation = float(elevation)
 
             if elevation > self._array.min_elevation():
 
-                wp = self._array.perimeter_array(elevation)
+                wp = self._array.perimeter_array(elevation, wall)
                 wp_s, wp_e = wp.coordinates()
                 ax.plot(wp_s, wp_e, 'g', linewidth=5,
                         label='Wetted perimeter')
@@ -914,7 +939,7 @@ class CrossSection:
 
         """
 
-        if self._vwall:
+        if self._wall:
             wall = 'lr'
         else:
             wall = None
