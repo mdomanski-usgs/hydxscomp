@@ -59,7 +59,7 @@ class SectionArray:
         return np.trapz(sub_array._station[~nan_e],
                         sub_array._elevation[~nan_e])
 
-    def _array_comp(self, elevation, func):
+    def _array_comp(self, elevation, func, *args, **kwargs):
 
         elevation = np.array(elevation, dtype=np.float)
         val = np.empty_like(elevation)
@@ -72,15 +72,15 @@ class SectionArray:
                 elif not np.isfinite(e):
                     a[...] = np.nan
                 else:
-                    a[...] = func(e)
+                    a[...] = func(e, *args, **kwargs)
 
         if elevation.ndim == 0:
             return float(val)
         else:
             return val
 
-    def _perimeter(self, elevation):
-        sub_array = self._sub_array(elevation, 'p')
+    def _perimeter(self, elevation, array_type='p'):
+        sub_array = self._sub_array(elevation, array_type)
 
         wp = 0
 
@@ -275,8 +275,8 @@ class SectionArray:
         perimeter : float or numpy.ndarray
 
         """
-
-        return self._array_comp(elevation, self._perimeter)
+        kwargs = {'array_type': 'p'}
+        return self._array_comp(elevation, self._perimeter, **kwargs)
 
     def perimeter_array(self, elevation):
 
@@ -378,6 +378,18 @@ class SectionArray:
         """
 
         return self._array_comp(elevation, self._top_width)
+
+
+class VWallSectionArray(SectionArray):
+
+    def perimeter(self, elevation):
+
+        kwargs = {'array_type': 'a'}
+        return self._array_comp(elevation, self._perimeter, **kwargs)
+
+    def perimeter_array(self, elevation):
+
+        return self._sub_array(elevation, 'a')
 
 
 class SubSection:
@@ -534,12 +546,22 @@ class CrossSection:
         than one. Values must be within the range of `station`
         (exclusive). The number of elements must be one less than
         the number of elements in `roughness`.
+    vwall : boolean, optional
+        Include a vertical wall with friction properties in the
+        computation of the wetted perimeter when the elevation
+        exceeds the cross section geometry elevation on the
+        sides. If True, a vertical wall with friction is
+        included in the computation.
 
     """
 
-    def __init__(self, station, elevation, roughness, sect_stat=None):
+    def __init__(self, station, elevation, roughness, sect_stat=None,
+                 vwall=False):
 
-        self._array = SectionArray(station, elevation)
+        if vwall:
+            self._array = VWallSectionArray(station, elevation)
+        else:
+            self._array = SectionArray(station, elevation)
 
         roughness = np.array(roughness, dtype=np.float)
 
