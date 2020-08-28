@@ -54,7 +54,7 @@ class SectionArray:
 
     def _area(self, elevation):
 
-        sub_array = self._sub_array(elevation, 'a')
+        sub_array = self._sub_array(elevation, 'lr')
         nan_e = np.isnan(sub_array._elevation)
         return np.trapz(sub_array._station[~nan_e],
                         sub_array._elevation[~nan_e])
@@ -79,8 +79,9 @@ class SectionArray:
         else:
             return val
 
-    def _perimeter(self, elevation, array_type='p'):
-        sub_array = self._sub_array(elevation, array_type)
+    def _perimeter(self, elevation, wall):
+
+        sub_array = self._sub_array(elevation, wall)
 
         wp = 0
 
@@ -94,15 +95,15 @@ class SectionArray:
 
         return wp
 
-    def _sub_array(self, elevation, array_type):
+    def _sub_array(self, elevation, wall):
         """Computes and returns sub arrays from station and elevation
 
         Parameters
         ----------
         elevation : float
             Elevation for computing sub arrays
-        array_type : {'p', 'a'}
-            Type of computation. Wetted perimeter or wetted area.
+        wall : {None, 'l', 'r', 'lr'}
+            Include wall above array ends
 
         Returns
         -------
@@ -110,8 +111,7 @@ class SectionArray:
 
         """
 
-        if array_type != 'p' and array_type != 'a':
-            raise ValueError("Invalid array type: {}".format(array_type))
+        assert wall in [None, 'l', 'r', 'lr']
 
         if elevation <= self._min_elevation:
             return np.nan, np.nan
@@ -119,7 +119,7 @@ class SectionArray:
         s = []
         e = []
 
-        if array_type == 'a':
+        if wall == 'l' or wall == 'lr':
             if elevation > self._elevation[0]:
                 s.append(self._station[0])
                 e.append(elevation)
@@ -151,7 +151,7 @@ class SectionArray:
                 s.append(s[-1])
                 e.append(np.nan)
 
-        if array_type == 'a':
+        if wall == 'r' or wall == 'lr':
             if elevation > self._elevation[-1]:
                 s.append(self._station[-1])
                 e.append(elevation)
@@ -168,7 +168,7 @@ class SectionArray:
         return result
 
     def _top_width(self, elevation):
-        sub_array = self._sub_array(elevation, 'a')
+        sub_array = self._sub_array(elevation, 'lr')
         tw = 0
         for i in range(1, len(sub_array._station)):
             if np.isnan(sub_array._elevation[i-1]) \
@@ -262,25 +262,33 @@ class SectionArray:
 
         return self._station.min()
 
-    def perimeter(self, elevation):
+    def perimeter(self, elevation, wall=None):
         """Returns the perimeter of this array
 
         Parameters
         ----------
         elevation : array_like
             Elevation for computing the perimeter.
+        wall : {None, 'l', 'r', 'lr'}, optional
+            If the elevation is greater than the elevation
+            at the ends of this array, extend a wall to
+            elevation in the computation of the perimeter.
 
         Returns
         -------
         perimeter : float or numpy.ndarray
 
         """
-        kwargs = {'array_type': 'p'}
-        return self._array_comp(elevation, self._perimeter, **kwargs)
+
+        if wall not in [None, 'l', 'r', 'lr']:
+            raise ValueError("Invalid wall kwarg: {}".format(wall))
+
+        args = [wall]
+        return self._array_comp(elevation, self._perimeter, *args)
 
     def perimeter_array(self, elevation):
 
-        return self._sub_array(elevation, 'p')
+        return self._sub_array(elevation, 'lr')
 
     def split(self, sect_stat):
         """Creates subarrays of this section array based on
@@ -378,18 +386,6 @@ class SectionArray:
         """
 
         return self._array_comp(elevation, self._top_width)
-
-
-class VWallSectionArray(SectionArray):
-
-    def perimeter(self, elevation):
-
-        kwargs = {'array_type': 'a'}
-        return self._array_comp(elevation, self._perimeter, **kwargs)
-
-    def perimeter_array(self, elevation):
-
-        return self._sub_array(elevation, 'a')
 
 
 class SubSection:
@@ -558,10 +554,8 @@ class CrossSection:
     def __init__(self, station, elevation, roughness, sect_stat=None,
                  vwall=False):
 
-        if vwall:
-            self._array = VWallSectionArray(station, elevation)
-        else:
-            self._array = SectionArray(station, elevation)
+        self._array = SectionArray(station, elevation)
+        self._vwall = bool(vwall)
 
         roughness = np.array(roughness, dtype=np.float)
 
@@ -920,4 +914,9 @@ class CrossSection:
 
         """
 
-        return self._array.perimeter(elevation)
+        if self._vwall:
+            wall = 'lr'
+        else:
+            wall = None
+
+        return self._array.perimeter(elevation, wall)
