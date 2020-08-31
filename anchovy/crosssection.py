@@ -481,9 +481,15 @@ class SubSection:
         area = self.area(elevation)
         wetted_perimeter = self.wetted_perimeter(elevation)
 
-        hydraulic_radius = np.zeros_like(elevation)
-        zeros = (area == 0) & (wetted_perimeter == 0)
-        hydraulic_radius[~zeros] = area[~zeros]/wetted_perimeter[~zeros]
+        if isinstance(area, float) and isinstance(wetted_perimeter, float):
+            if area != 0 and wetted_perimeter != 0:
+                hydraulic_radius = area/wetted_perimeter
+            else:
+                hydraulic_radius = 0
+        else:
+            hydraulic_radius = np.zeros_like(elevation)
+            zeros = (area == 0) & (wetted_perimeter == 0)
+            hydraulic_radius[~zeros] = area[~zeros]/wetted_perimeter[~zeros]
 
         return hydraulic_radius
 
