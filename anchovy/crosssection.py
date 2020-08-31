@@ -583,16 +583,16 @@ class CrossSection:
             if sect_stat is None:
                 raise ValueError("sect_stat cannot be None")
             if roughness.size - 1 != sect_stat.size:
-                raise ValueError("Invalid number of rough_stat values")
+                raise ValueError("Invalid number of sect_stat values")
             if sect_stat.min() <= self._array.min_station() \
                     or self._array.max_station() <= sect_stat.max():
                 raise ValueError(
-                    "rough_stat bounds must be inside station bounds")
+                    "sect_stat bounds must be inside station bounds")
             if sect_stat.size > 1:
                 if not sect_stat.ndim == 1:
-                    raise ValueError("rough_stat must be one dimensional")
+                    raise ValueError("sect_stat must be one dimensional")
                 if not np.all(np.diff(sect_stat) > 0):
-                    raise ValueError("rough_stat must be in ascending order")
+                    raise ValueError("sect_stat must be in ascending order")
 
         if roughness.size > 1:
             self._subsections = \
