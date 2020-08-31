@@ -581,7 +581,7 @@ class CrossSection:
 
         if roughness.size > 1:
             if sect_stat is None:
-                raise ValueError("rough_stat cannot be None")
+                raise ValueError("sect_stat cannot be None")
             if roughness.size - 1 != sect_stat.size:
                 raise ValueError("Invalid number of rough_stat values")
             if sect_stat.min() <= self._array.min_station() \
