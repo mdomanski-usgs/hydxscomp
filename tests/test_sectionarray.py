@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from anchovy.crosssection import SectionArray
+from anchovy.sectionarray import SectionArray
 
 
 class TestSectionArray(TestCase):
