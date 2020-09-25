@@ -80,7 +80,7 @@ class SectionArray:
         with np.nditer([elevation, val], [], [['readonly'], ['writeonly']]) \
                 as it:
             for e, a in it:
-                if e <= self._min_elevation or e <= self._active_elev:
+                if e <= self._min_elevation or e < self._active_elev:
                     a[...] = 0
                 elif not np.isfinite(e):
                     a[...] = np.nan
