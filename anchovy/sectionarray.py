@@ -229,7 +229,8 @@ class SectionArray:
 
         """
 
-        return self.__class__(self._station, self._elevation)
+        return self.__class__(self._station, self._elevation,
+                              self._active_elev)
 
     def max_elevation(self):
         """Returns the maximum elevation of this array
@@ -388,6 +389,8 @@ class SectionArray:
 
         if active_elev is None:
             active_elev = [self._active_elev] * len(split_station)
+        else:
+            active_elev = list(active_elev)
 
         return [SectionArray(s, e, a) for (s, e, a)
                 in zip(split_station, split_elevation, active_elev)]
