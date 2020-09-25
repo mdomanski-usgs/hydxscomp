@@ -37,13 +37,13 @@ class TestSubSection(TestCase):
         ss = SubSection(section_array, roughness)
         self.assertEqual(ss.wetted_perimeter(1), 1)
 
-        ss_l_wall = SubSection(section_array, roughness, 'l')
+        ss_l_wall = SubSection(section_array, roughness, wall='l')
         self.assertEqual(ss_l_wall.wetted_perimeter(1), 2)
 
-        ss_r_wall = SubSection(section_array, roughness, 'r')
+        ss_r_wall = SubSection(section_array, roughness, wall='r')
         self.assertEqual(ss_r_wall.wetted_perimeter(1), 2)
 
-        ss_lr_wall = SubSection(section_array, roughness, 'lr')
+        ss_lr_wall = SubSection(section_array, roughness, wall='lr')
         self.assertEqual(ss_lr_wall.wetted_perimeter(1), 3)
 
 
