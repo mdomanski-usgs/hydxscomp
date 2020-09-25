@@ -104,7 +104,7 @@ class TestCrossSection(TestCase):
         elevation = [1, 0, 0, 1]
         roughness = [0.035, 0.010, 0.035]
         sect_stat = [0.25, 0.75]
-        xs = CrossSection(station, elevation, roughness, sect_stat, True)
+        xs = CrossSection(station, elevation, roughness, sect_stat, wall=True)
         e = np.linspace(0, 1, 10)
         wp = 1 + 2*e
         wp[0] = 0
@@ -120,7 +120,7 @@ class TestCrossSection(TestCase):
         elevation = [z, 0, z, 0, z]
         roughness = [0.035, 0.035]
         sect_stat = 1
-        xs = CrossSection(station, elevation, roughness, sect_stat, True)
+        xs = CrossSection(station, elevation, roughness, sect_stat, wall=True)
         e = np.linspace(0, z, 10)
         wp = 2*2*e/np.cos(np.pi/6)
         self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
