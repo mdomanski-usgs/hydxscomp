@@ -172,6 +172,9 @@ class CrossSection:
         than one. Values must be within the range of `station`
         (exclusive). The number of elements must be one less than
         the number of elements in `roughness`.
+    active_elev : array_like, optional
+        Activation elevation for each subsection. If None, -inf is
+        used.
     wall : boolean, optional
         Include a vertical wall with friction properties in the
         computation of the wetted perimeter when the elevation
@@ -182,7 +185,7 @@ class CrossSection:
     """
 
     def __init__(self, station, elevation, roughness, sect_stat=None,
-                 wall=False):
+                 active_elev=None, wall=False):
 
         self._array = SectionArray(station, elevation)
         self._wall = bool(wall)
@@ -210,12 +213,16 @@ class CrossSection:
                 if not np.all(np.diff(sect_stat) > 0):
                     raise ValueError("sect_stat must be in ascending order")
 
-        if roughness.size > 1:
+            if active_elev is None:
+                active_elev = np.full_like(roughness, -inf, dtype=np.float)
+            else:
+                active_elev = np.array(active_elev, dtype=np.float)
+
             self._subsections = \
                 self._sections(self._array, station, elevation,
-                               roughness, sect_stat, wall)
+                               roughness, sect_stat, active_elev, wall)
         else:
-            array = SectionArray(station, elevation)
+            array = SectionArray(station, elevation, active_elev)
             if self._wall:
                 self._subsections = [SubSection(array, roughness, 'lr')]
             else:
@@ -224,11 +231,12 @@ class CrossSection:
         self._sect_stat = sect_stat
 
     @staticmethod
-    def _sections(array, station, elevation, roughness, rough_stat, wall):
+    def _sections(array, station, elevation, roughness, rough_stat,
+                  active_elev, wall):
 
         sections = []
 
-        split_arrays = array.split(rough_stat)
+        split_arrays = array.split(rough_stat, active_elev)
 
         n_sections = len(split_arrays)
 
@@ -256,7 +264,15 @@ class CrossSection:
 
         """
 
-        return self._array.area(elevation)
+        elevation = np.array(elevation, dtype=float)
+        area = np.zeros_like(elevation)
+        for ss in self._subsections:
+            area += ss.area(elevation)
+
+        if elevation.shape == ():
+            return area[0]
+        else:
+            return area
 
     def conveyance(self, elevation):
         """Computes conveyance for this cross section
