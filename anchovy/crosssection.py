@@ -1,3 +1,5 @@
+from math import inf
+
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import numpy as np
@@ -14,15 +16,28 @@ class SectionArray:
     elevation : array_like
         Elevation (vertical) coordinates. Must be one-dimensional
         and the same size as `station`.
+    active_elev : float, optional
+        Activation elevation for this section array. The default
+        is ``-inf``. Results for computations at elevations below
+        the activation elevation are returned as 0.
 
     """
 
-    def __init__(self, station, elevation):
+    def __init__(self, station, elevation, active_elev=-inf):
 
         self._station = np.array(station)
         self._elevation = np.array(elevation)
         self._min_elevation = self._elevation.min()
         self._max_elevation = self._elevation.max()
+
+        try:
+            self._active_elev = float(active_elev)
+        except TypeError as e:
+            if e.args[0] == \
+                    'only size-1 arrays can be converted to Python scalars':
+                raise TypeError('activation elevation must be a scalar')
+            else:
+                raise
 
         if not np.all(np.isfinite(self._station)):
             raise ValueError("station must be finite")
@@ -67,7 +82,7 @@ class SectionArray:
         with np.nditer([elevation, val], [], [['readonly'], ['writeonly']]) \
                 as it:
             for e, a in it:
-                if e <= self._min_elevation:
+                if e <= self._min_elevation or e <= self._active_elev:
                     a[...] = 0
                 elif not np.isfinite(e):
                     a[...] = np.nan
@@ -398,7 +413,7 @@ class SubSection:
     ----------
     section_array : SectionArray
     roughness : float
-        Manning's roughness coefficient, in s/m**(1/3)
+        Manning's roughness coefficient, in :math:`s/m^{1/3}`
     wall : {None, 'l', 'r', 'lr'}, optional
 
     """
@@ -618,9 +633,9 @@ class CrossSection:
 
         for i, n in enumerate(roughness):
             if i == 0 and wall:
-                sections.append(SubSection(split_arrays[i], n, 'l'))
+                sections.append(SubSection(split_arrays[i], n, wall='l'))
             elif i == n_sections - 1 and wall:
-                sections.append(SubSection(split_arrays[i], n, 'r'))
+                sections.append(SubSection(split_arrays[i], n, wall='r'))
             else:
                 sections.append(SubSection(split_arrays[i], n))
 

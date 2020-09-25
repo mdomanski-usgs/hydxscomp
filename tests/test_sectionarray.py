@@ -55,6 +55,19 @@ class TestSectionArray(TestCase):
             ValueError, "station and elevation must have the same size",
             SectionArray, *args)
 
+    def test_active_elev(self):
+
+        # unit square
+        station = [0, 0, 1, 1]
+        elevation = [1, 0, 0, 1]
+        active_elev = 0.5
+        sa = SectionArray(station, elevation, active_elev=active_elev)
+        e = np.linspace(0, 1)
+        area = e.copy()
+        area[e < active_elev] = 0
+
+        self.assertTrue(np.allclose(area, sa.area(e)))
+
     def test_area(self):
 
         # unit square
