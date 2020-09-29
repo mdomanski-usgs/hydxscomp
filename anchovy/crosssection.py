@@ -218,6 +218,9 @@ class CrossSection:
                 active_elev = np.full_like(roughness, -inf, dtype=np.float)
             else:
                 active_elev = np.array(active_elev, dtype=np.float)
+                if active_elev.size != roughness.size:
+                    raise ValueError(
+                        "active_elev must be the same size as roughness")
 
             self._subsections = \
                 self._sections(self._array, station, elevation,
