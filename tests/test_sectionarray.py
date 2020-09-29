@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from anchovy.crosssection import SectionArray
+from anchovy.sectionarray import SectionArray
 
 
 class TestSectionArray(TestCase):
@@ -54,6 +54,19 @@ class TestSectionArray(TestCase):
         self.assertRaisesRegex(
             ValueError, "station and elevation must have the same size",
             SectionArray, *args)
+
+    def test_active_elev(self):
+
+        # unit square
+        station = [0, 0, 1, 1]
+        elevation = [1, 0, 0, 1]
+        active_elev = 0.5
+        sa = SectionArray(station, elevation, active_elev=active_elev)
+        e = np.linspace(0, 1)
+        area = e.copy()
+        area[e < active_elev] = 0
+
+        self.assertTrue(np.allclose(area, sa.area(e)))
 
     def test_area(self):
 
@@ -157,6 +170,29 @@ class TestSectionArray(TestCase):
         self.assertTrue(np.allclose(perimeter_sum, array.perimeter(stages)))
         self.assertTrue(np.allclose(area_sum, array.area(stages)))
         self.assertTrue(np.allclose(tw_sum, array.top_width(stages)))
+
+    def test_split_active(self):
+
+        # double triangle w/ two subsections
+        z = np.cos(np.arcsin(0.5))
+        station = [0, 0.5, 1, 1.5, 2]
+        elevation = [z, 0, z, 0, z]
+        sect_stat = 1
+
+        sa = SectionArray(station, elevation)
+
+        arrays = sa.split(sect_stat, [-np.inf, z])
+
+        e = np.linspace(0, z, 10)
+        area = e[:-1]**2*np.tan(np.pi/6)
+
+        self.assertTrue(np.allclose(area, arrays[0].area(e[:-1])))
+        self.assertTrue(np.allclose(
+            np.zeros_like(area), arrays[1].area(e[:-1])))
+
+        e = np.linspace(z, 2*z, 10)
+        self.assertTrue(np.allclose(
+            arrays[0].area(e), arrays[1].area(e)))
 
     def test_top_width(self):
 

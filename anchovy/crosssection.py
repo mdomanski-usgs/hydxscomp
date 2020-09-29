@@ -1,394 +1,11 @@
+from math import inf
+
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
+from matplotlib.patches import Patch, Polygon
+from matplotlib.lines import Line2D
 import numpy as np
 
-
-class SectionArray:
-    """Section coordinate array
-
-    Parameters
-    ----------
-    station : array_like
-        Station (lateral) coordinates. Must be in ascending order,
-        one-dimensional, and the same size as `elevation`.
-    elevation : array_like
-        Elevation (vertical) coordinates. Must be one-dimensional
-        and the same size as `station`.
-
-    """
-
-    def __init__(self, station, elevation):
-
-        self._station = np.array(station)
-        self._elevation = np.array(elevation)
-        self._min_elevation = self._elevation.min()
-        self._max_elevation = self._elevation.max()
-
-        if not np.all(np.isfinite(self._station)):
-            raise ValueError("station must be finite")
-
-        if not np.all(np.isfinite(self._elevation)):
-            raise ValueError("elevation must be finite")
-
-        if not self._station.ndim == 1:
-            raise ValueError("station must be one dimensional")
-
-        if not self._elevation.ndim == 1:
-            raise ValueError("elevation must be one dimensional")
-
-        if self._station.size != self._elevation.size:
-            raise ValueError("station and elevation must have the same size")
-
-        if not np.all(np.diff(self._station) >= 0):
-            raise ValueError("station must be in ascending order")
-
-    @staticmethod
-    def _interp_elevation(s1, e1, s2, e2, s):
-        slope = (e2 - e1)/(s2 - s1)
-        return slope * (s - s2) + e2
-
-    def _interp_station(self, s1, e1, s2, e2, e):
-
-        slope = (s2 - s1)/(e2 - e1)
-        return slope * (e - e1) + s1
-
-    def _area(self, elevation):
-
-        sub_array = self._sub_array(elevation, 'lr')
-        nan_e = np.isnan(sub_array._elevation)
-        return np.trapz(sub_array._station[~nan_e],
-                        sub_array._elevation[~nan_e])
-
-    def _array_comp(self, elevation, func, *args, **kwargs):
-
-        elevation = np.array(elevation, dtype=np.float)
-        val = np.empty_like(elevation)
-
-        with np.nditer([elevation, val], [], [['readonly'], ['writeonly']]) \
-                as it:
-            for e, a in it:
-                if e <= self._min_elevation:
-                    a[...] = 0
-                elif not np.isfinite(e):
-                    a[...] = np.nan
-                else:
-                    a[...] = func(e, *args, **kwargs)
-
-        if elevation.ndim == 0:
-            return float(val)
-        else:
-            return val
-
-    def _perimeter(self, elevation, wall):
-
-        sub_array = self._sub_array(elevation, wall)
-
-        wp = 0
-
-        for i in range(1, len(sub_array._station)):
-            if np.isnan(sub_array._elevation[i-1]) \
-                    or np.isnan(sub_array._elevation[i]):
-                continue
-            wp += \
-                np.sqrt((sub_array._station[i]-sub_array._station[i-1])**2 +
-                        (sub_array._elevation[i]-sub_array._elevation[i-1])**2)
-
-        return wp
-
-    def _sub_array(self, elevation, wall):
-        """Computes and returns sub arrays from station and elevation
-
-        Parameters
-        ----------
-        elevation : float
-            Elevation for computing sub arrays
-        wall : {None, 'l', 'r', 'lr'}
-            Include wall above array ends
-
-        Returns
-        -------
-        SectionArray
-
-        """
-
-        assert wall in [None, 'l', 'r', 'lr']
-
-        if elevation <= self._min_elevation:
-            return np.nan, np.nan
-
-        s = []
-        e = []
-
-        if wall == 'l' or wall == 'lr':
-            if elevation > self._elevation[0]:
-                s.append(self._station[0])
-                e.append(elevation)
-
-        if self._elevation[0] <= elevation:
-            s.append(self._station[0])
-            e.append(self._elevation[0])
-
-        for i in range(1, len(self._station)):
-
-            e1 = self._elevation[i - 1]
-            e2 = self._elevation[i]
-
-            s1 = self._station[i - 1]
-            s2 = self._station[i]
-
-            # in between the previous coordinate and this coordinate
-            if (e1 < elevation and elevation < e2) or \
-                    (e2 < elevation and elevation < e1):
-                e.append(elevation)
-                s.append(self._interp_station(s1, e1, s2, e2, elevation))
-
-            # greater than or equal to this coordinate
-            if e2 <= elevation:
-                e.append(e2)
-                s.append(s2)
-
-            if len(e) > 0 and e2 > elevation and not np.isnan(e[-1]):
-                s.append(s[-1])
-                e.append(np.nan)
-
-        if wall == 'r' or wall == 'lr':
-            if elevation > self._elevation[-1]:
-                s.append(self._station[-1])
-                e.append(elevation)
-
-        if np.isnan(e[-1]):
-            s.pop()
-            e.pop()
-
-        cls = self.__class__
-        result = cls.__new__(cls)
-        result._station = np.array(s)
-        result._elevation = np.array(e)
-
-        return result
-
-    def _top_width(self, elevation):
-        sub_array = self._sub_array(elevation, 'lr')
-        tw = 0
-        for i in range(1, len(sub_array._station)):
-            if np.isnan(sub_array._elevation[i-1]) \
-                    or np.isnan(sub_array._elevation[i]):
-                continue
-            else:
-                tw += sub_array._station[i] - sub_array._station[i-1]
-
-        return tw
-
-    def area(self, elevation):
-        """Computes area of this array
-
-        Parameters
-        ----------
-        elevation : array_like
-            Elevation to compute area.
-
-        Returns
-        -------
-        area : float or numpy.ndarray
-
-        """
-
-        return self._array_comp(elevation, self._area)
-
-    def coordinates(self):
-        """Returns copies of the coordinate arrays in this
-        array
-
-        Returns
-        -------
-        station, elevation : numpy.ndarray, numpy.ndarray
-
-        """
-
-        return self._station.copy(), self._elevation.copy()
-
-    def copy(self):
-        """Returns a copy of this array
-
-        Returns
-        -------
-        array : SectionArray
-
-        """
-
-        return self.__class__(self._station, self._elevation)
-
-    def max_elevation(self):
-        """Returns the maximum elevation of this array
-
-        Returns
-        -------
-        max_elevation : float
-
-        """
-
-        return self._max_elevation
-
-    def max_station(self):
-        """Returns the maximum station of this array
-
-        Returns
-        -------
-        max_station : float
-
-        """
-
-        return self._station.max()
-
-    def min_elevation(self):
-        """Returns the minimum elevation of this array
-
-        Returns
-        -------
-        min_elevation : float
-
-        """
-
-        return self._min_elevation
-
-    def min_station(self):
-        """Returns the minimum station of this array
-
-        Returns
-        -------
-        min_station : float
-
-        """
-
-        return self._station.min()
-
-    def perimeter(self, elevation, wall=None):
-        """Returns the perimeter of this array
-
-        Parameters
-        ----------
-        elevation : array_like
-            Elevation for computing the perimeter.
-        wall : {None, 'l', 'r', 'lr'}, optional
-            If the elevation is greater than the elevation
-            at the ends of this array, extend a wall to
-            elevation in the computation of the perimeter.
-
-        Returns
-        -------
-        perimeter : float or numpy.ndarray
-
-        """
-
-        if wall not in [None, 'l', 'r', 'lr']:
-            raise ValueError("Invalid wall kwarg: {}".format(wall))
-
-        args = [wall]
-        return self._array_comp(elevation, self._perimeter, *args)
-
-    def perimeter_array(self, elevation, wall=None):
-
-        if wall not in [None, 'l', 'r', 'lr']:
-            raise ValueError("Invalid wall kwarg: {}".format(wall))
-
-        return self._sub_array(elevation, wall)
-
-    def split(self, sect_stat):
-        """Creates subarrays of this section array based on
-        sect_stat
-
-        Parameters
-        ----------
-        sect_stat : array_like
-            Subarray stationing
-
-        Returns
-        -------
-        list
-            List of subarrays
-
-        """
-
-        split_station = []
-        split_elevation = []
-
-        j = 0
-        s = []
-        e = []
-
-        sect_stat = np.array(sect_stat)
-
-        if sect_stat.ndim == 0:
-            sect_stat = sect_stat[np.newaxis]
-
-        # loop through each station value in sect_stat
-        for i in range(len(sect_stat)):
-
-            # while the j-th station in this array is less than the i-th
-            # section station, append it to the list and increment to the next
-            # station in this array
-            while self._station[j] < sect_stat[i]:
-                s.append(self._station[j])
-                e.append(self._elevation[j])
-                j += 1
-
-            s.append(sect_stat[i])  # append the i-th section station
-
-            # if the last station added (sect_stat[i]) is equal to the next
-            # station and the current elevation value is less than the next
-            # elevation value
-            if (j < len(self._station) - 1) and (s[-1] == self._station[j+1]) \
-                    and (self._elevation[j] < self._elevation[j+1]):
-
-                # add the
-                e.append(self._elevation[j])
-                s.append(s[-1])
-                e.append(self._elevation[j+1])
-                j += 1
-            else:
-                e_interp = self._interp_elevation(self._station[j-1],
-                                                  self._elevation[j-1],
-                                                  self._station[j],
-                                                  self._elevation[j],
-                                                  sect_stat[i])
-                e.append(e_interp)
-
-            split_station.append(np.array(s))
-            split_elevation.append(np.array(e))
-
-            if sect_stat[i] != self._station[j]:
-                s = [split_station[-1][-1]]
-                e = [split_elevation[-1][-1]]
-            else:
-                s = []
-                e = []
-
-        # finish the rest of the station, elevation arrays
-        while j < len(self._station):
-            s.append(self._station[j])
-            e.append(self._elevation[j])
-            j += 1
-
-        split_station.append(np.array(s))
-        split_elevation.append(np.array(e))
-
-        return [SectionArray(s, e) for (s, e)
-                in zip(split_station, split_elevation)]
-
-    def top_width(self, elevation):
-        """Returns the top width of this array
-
-        Parameters
-        ----------
-        elevation : array_like
-            Elevation for computing the top width.
-
-        Returns
-        -------
-        top_width : float or numpy.ndarray
-        """
-
-        return self._array_comp(elevation, self._top_width)
+from anchovy.sectionarray import SectionArray
 
 
 class SubSection:
@@ -398,7 +15,7 @@ class SubSection:
     ----------
     section_array : SectionArray
     roughness : float
-        Manning's roughness coefficient, in s/m**(1/3)
+        Manning's roughness coefficient, in :math:`s/m^{1/3}`
     wall : {None, 'l', 'r', 'lr'}, optional
 
     """
@@ -556,6 +173,9 @@ class CrossSection:
         than one. Values must be within the range of `station`
         (exclusive). The number of elements must be one less than
         the number of elements in `roughness`.
+    active_elev : array_like, optional
+        Activation elevation for each subsection. If None, -inf is
+        used.
     wall : boolean, optional
         Include a vertical wall with friction properties in the
         computation of the wetted perimeter when the elevation
@@ -566,7 +186,7 @@ class CrossSection:
     """
 
     def __init__(self, station, elevation, roughness, sect_stat=None,
-                 wall=False):
+                 active_elev=None, wall=False):
 
         self._array = SectionArray(station, elevation)
         self._wall = bool(wall)
@@ -594,12 +214,18 @@ class CrossSection:
                 if not np.all(np.diff(sect_stat) > 0):
                     raise ValueError("sect_stat must be in ascending order")
 
-        if roughness.size > 1:
+            if active_elev is None:
+                active_elev = np.full_like(roughness, -inf, dtype=np.float)
+            else:
+                active_elev = np.array(active_elev, dtype=np.float)
+
             self._subsections = \
                 self._sections(self._array, station, elevation,
-                               roughness, sect_stat, wall)
+                               roughness, sect_stat, active_elev, wall)
         else:
-            array = SectionArray(station, elevation)
+            if active_elev is None:
+                active_elev = -inf
+            array = SectionArray(station, elevation, active_elev)
             if self._wall:
                 self._subsections = [SubSection(array, roughness, 'lr')]
             else:
@@ -608,19 +234,51 @@ class CrossSection:
         self._sect_stat = sect_stat
 
     @staticmethod
-    def _sections(array, station, elevation, roughness, rough_stat, wall):
+    def _plot_subsection(subsection, elevation, wall, ax):
+
+        array = subsection.array()
+        wp = array.perimeter_array(elevation, wall)
+        wp_s, wp_e = wp.coordinates()
+
+        try:
+            if (np.isnan(wp_s) or np.isnan(wp_e)):
+                return
+        except ValueError:
+            pass
+
+        ax.plot(wp_s, wp_e, 'g', linewidth=5)
+
+        e_nan = np.isnan(wp_e)
+        tw_e = elevation*np.ones_like(wp_e)
+        tw_e[e_nan] = np.nan
+        ax.plot(wp_s, tw_e, 'b', linewidth=2.5)
+
+        xs_area_zy = [*zip(wp_s, wp_e)]
+
+        if elevation > wp_e[0]:
+            xs_area_zy.insert(0, (wp_s[0], elevation))
+        if elevation > wp_e[-1]:
+            xs_area_zy.append((wp_s[-1], elevation))
+
+        if len(xs_area_zy) > 2:
+            poly = Polygon(xs_area_zy, facecolor='b', alpha=0.25)
+            ax.add_patch(poly)
+
+    @ staticmethod
+    def _sections(array, station, elevation, roughness, rough_stat,
+                  active_elev, wall):
 
         sections = []
 
-        split_arrays = array.split(rough_stat)
+        split_arrays = array.split(rough_stat, active_elev)
 
         n_sections = len(split_arrays)
 
         for i, n in enumerate(roughness):
             if i == 0 and wall:
-                sections.append(SubSection(split_arrays[i], n, 'l'))
+                sections.append(SubSection(split_arrays[i], n, wall='l'))
             elif i == n_sections - 1 and wall:
-                sections.append(SubSection(split_arrays[i], n, 'r'))
+                sections.append(SubSection(split_arrays[i], n, wall='r'))
             else:
                 sections.append(SubSection(split_arrays[i], n))
 
@@ -640,7 +298,15 @@ class CrossSection:
 
         """
 
-        return self._array.area(elevation)
+        elevation = np.array(elevation, dtype=float)
+        area = np.zeros_like(elevation)
+        for ss in self._subsections:
+            area += ss.area(elevation)
+
+        if elevation.shape == ():
+            return area[0]
+        else:
+            return area
 
     def conveyance(self, elevation):
         """Computes conveyance for this cross section
@@ -741,44 +407,58 @@ class CrossSection:
         s, e = self._array.coordinates()
 
         if ax is None:
-
             ax = plt.axes()
 
-        ax.plot(s, e, 'k', marker='.', label='Coordinates')
+        # list of handles for legend
+        handles = []
 
+        # add the coordinates
+        coord_line = ax.plot(s, e, 'k', marker='.', label='Coordinates')
+        handles.append(coord_line[0])
+
+        # show left or right walls
         if self._wall:
-            wall = 'lr'
+            l_wall = 'l'
+            r_wall = 'r'
+            lr_wall = 'lr'
         else:
-            wall = None
+            l_wall = None
+            r_wall = None
+            lr_wall = None
 
+        # if an elevation is provided, plot the wetted area, top width, and
+        # wetted perimeter of each subsection
         if elevation is not None:
 
             elevation = float(elevation)
 
-            if elevation > self._array.min_elevation():
+            n_ss = len(self._subsections)
 
-                wp = self._array.perimeter_array(elevation, wall)
-                wp_s, wp_e = wp.coordinates()
-                ax.plot(wp_s, wp_e, 'g', linewidth=5,
-                        label='Wetted perimeter')
+            if n_ss == 1:
+                self._plot_subsection(
+                    self._subsections[0], elevation, lr_wall, ax)
+            else:
+                for i, ss in enumerate(self._subsections):
+                    if i == 0:
+                        self._plot_subsection(ss, elevation, l_wall, ax)
+                    elif i == n_ss - 1:
+                        self._plot_subsection(ss, elevation, r_wall, ax)
+                    else:
+                        self._plot_subsection(ss, elevation, None, ax)
 
-                e_nan = np.isnan(wp_e)
-                tw_e = elevation*np.ones_like(wp_e)
-                tw_e[e_nan] = np.nan
-                ax.plot(wp_s, tw_e, 'b', linewidth=2.5, label='Top width')
+            # create proxy artists to add to the legend
+            area_patch = Patch(color='blue', alpha=0.25, label='Wetted area')
+            handles.append(area_patch)
 
-                xs_area_zy = [*zip(wp_s, wp_e)]
+            tw_line = Line2D([], [], color='blue',
+                             linewidth=2.5, label='Top width')
+            handles.append(tw_line)
 
-                if elevation > wp_e[0]:
-                    xs_area_zy.insert(0, (wp_s[0], elevation))
-                if elevation > wp_e[-1]:
-                    xs_area_zy.append((wp_s[-1], elevation))
+            wp_line = Line2D([], [], color='green',
+                             linewidth=5, label='Wetted perimeter')
+            handles.append(wp_line)
 
-                if len(xs_area_zy) > 2:
-                    poly = Polygon(xs_area_zy, facecolor='b',
-                                   alpha=0.25, label='Wetted area')
-                    ax.add_patch(poly)
-
+        # plot the points where subsections are divided
         if len(self._subsections) > 1:
             s, e = self._subsections[0].array().coordinates()
             sect_elev = [e[-1]]
@@ -787,11 +467,12 @@ class CrossSection:
                 s, e = self._subsections[i].array().coordinates()
                 sect_station.append(s[0])
                 sect_elev.append(e[0])
-            ax.plot(sect_station, sect_elev, linestyle='None',
-                    marker='s', markerfacecolor='r', markeredgecolor='r',
-                    label='Sub section')
+            ss_point = ax.plot(sect_station, sect_elev, linestyle='None',
+                               marker='s', markerfacecolor='r',
+                               markeredgecolor='r', label='Sub section')
+            handles.append(ss_point[0])
 
-        ax.legend()
+        ax.legend(handles=handles)
         ax.set_xlabel('Station, in ft')
         ax.set_ylabel('Elevation, in ft')
 
