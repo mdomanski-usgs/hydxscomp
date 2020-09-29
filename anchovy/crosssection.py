@@ -1,7 +1,8 @@
 from math import inf
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
+from matplotlib.patches import Patch, Polygon
+from matplotlib.lines import Line2D
 import numpy as np
 
 from anchovy.sectionarray import SectionArray
@@ -222,6 +223,8 @@ class CrossSection:
                 self._sections(self._array, station, elevation,
                                roughness, sect_stat, active_elev, wall)
         else:
+            if active_elev is None:
+                active_elev = -inf
             array = SectionArray(station, elevation, active_elev)
             if self._wall:
                 self._subsections = [SubSection(array, roughness, 'lr')]
@@ -231,6 +234,37 @@ class CrossSection:
         self._sect_stat = sect_stat
 
     @staticmethod
+    def _plot_subsection(subsection, elevation, wall, ax):
+
+        array = subsection.array()
+        wp = array.perimeter_array(elevation, wall)
+        wp_s, wp_e = wp.coordinates()
+
+        try:
+            if (np.isnan(wp_s) or np.isnan(wp_e)):
+                return
+        except ValueError:
+            pass
+
+        ax.plot(wp_s, wp_e, 'g', linewidth=5)
+
+        e_nan = np.isnan(wp_e)
+        tw_e = elevation*np.ones_like(wp_e)
+        tw_e[e_nan] = np.nan
+        ax.plot(wp_s, tw_e, 'b', linewidth=2.5)
+
+        xs_area_zy = [*zip(wp_s, wp_e)]
+
+        if elevation > wp_e[0]:
+            xs_area_zy.insert(0, (wp_s[0], elevation))
+        if elevation > wp_e[-1]:
+            xs_area_zy.append((wp_s[-1], elevation))
+
+        if len(xs_area_zy) > 2:
+            poly = Polygon(xs_area_zy, facecolor='b', alpha=0.25)
+            ax.add_patch(poly)
+
+    @ staticmethod
     def _sections(array, station, elevation, roughness, rough_stat,
                   active_elev, wall):
 
@@ -373,44 +407,58 @@ class CrossSection:
         s, e = self._array.coordinates()
 
         if ax is None:
-
             ax = plt.axes()
 
-        ax.plot(s, e, 'k', marker='.', label='Coordinates')
+        # list of handles for legend
+        handles = []
 
+        # add the coordinates
+        coord_line = ax.plot(s, e, 'k', marker='.', label='Coordinates')
+        handles.append(coord_line[0])
+
+        # show left or right walls
         if self._wall:
-            wall = 'lr'
+            l_wall = 'l'
+            r_wall = 'r'
+            lr_wall = 'lr'
         else:
-            wall = None
+            l_wall = None
+            r_wall = None
+            lr_wall = None
 
+        # if an elevation is provided, plot the wetted area, top width, and
+        # wetted perimeter of each subsection
         if elevation is not None:
 
             elevation = float(elevation)
 
-            if elevation > self._array.min_elevation():
+            n_ss = len(self._subsections)
 
-                wp = self._array.perimeter_array(elevation, wall)
-                wp_s, wp_e = wp.coordinates()
-                ax.plot(wp_s, wp_e, 'g', linewidth=5,
-                        label='Wetted perimeter')
+            if n_ss == 1:
+                self._plot_subsection(
+                    self._subsections[0], elevation, lr_wall, ax)
+            else:
+                for i, ss in enumerate(self._subsections):
+                    if i == 0:
+                        self._plot_subsection(ss, elevation, l_wall, ax)
+                    elif i == n_ss - 1:
+                        self._plot_subsection(ss, elevation, r_wall, ax)
+                    else:
+                        self._plot_subsection(ss, elevation, None, ax)
 
-                e_nan = np.isnan(wp_e)
-                tw_e = elevation*np.ones_like(wp_e)
-                tw_e[e_nan] = np.nan
-                ax.plot(wp_s, tw_e, 'b', linewidth=2.5, label='Top width')
+            # create proxy artists to add to the legend
+            area_patch = Patch(color='blue', alpha=0.25, label='Wetted area')
+            handles.append(area_patch)
 
-                xs_area_zy = [*zip(wp_s, wp_e)]
+            tw_line = Line2D([], [], color='blue',
+                             linewidth=2.5, label='Top width')
+            handles.append(tw_line)
 
-                if elevation > wp_e[0]:
-                    xs_area_zy.insert(0, (wp_s[0], elevation))
-                if elevation > wp_e[-1]:
-                    xs_area_zy.append((wp_s[-1], elevation))
+            wp_line = Line2D([], [], color='green',
+                             linewidth=5, label='Wetted perimeter')
+            handles.append(wp_line)
 
-                if len(xs_area_zy) > 2:
-                    poly = Polygon(xs_area_zy, facecolor='b',
-                                   alpha=0.25, label='Wetted area')
-                    ax.add_patch(poly)
-
+        # plot the points where subsections are divided
         if len(self._subsections) > 1:
             s, e = self._subsections[0].array().coordinates()
             sect_elev = [e[-1]]
@@ -419,11 +467,12 @@ class CrossSection:
                 s, e = self._subsections[i].array().coordinates()
                 sect_station.append(s[0])
                 sect_elev.append(e[0])
-            ax.plot(sect_station, sect_elev, linestyle='None',
-                    marker='s', markerfacecolor='r', markeredgecolor='r',
-                    label='Sub section')
+            ss_point = ax.plot(sect_station, sect_elev, linestyle='None',
+                               marker='s', markerfacecolor='r',
+                               markeredgecolor='r', label='Sub section')
+            handles.append(ss_point[0])
 
-        ax.legend()
+        ax.legend(handles=handles)
         ax.set_xlabel('Station, in ft')
         ax.set_ylabel('Elevation, in ft')
 

@@ -126,8 +126,14 @@ class SectionArray:
 
         assert wall in [None, 'l', 'r', 'lr']
 
-        if elevation <= self._min_elevation:
-            return np.nan, np.nan
+        cls = self.__class__
+        result = cls.__new__(cls)
+
+        if elevation <= self._min_elevation or elevation < self._active_elev:
+            result._station = np.array([np.nan])
+            result._elevation = np.array([np.nan])
+            result._active_elev = self._active_elev
+            return result
 
         s = []
         e = []
@@ -173,10 +179,9 @@ class SectionArray:
             s.pop()
             e.pop()
 
-        cls = self.__class__
-        result = cls.__new__(cls)
         result._station = np.array(s)
         result._elevation = np.array(e)
+        result._active_elev = self._active_elev
 
         return result
 
