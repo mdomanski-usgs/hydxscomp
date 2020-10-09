@@ -307,7 +307,7 @@ class CrossSection:
             area += ss.area(elevation)
 
         if elevation.shape == ():
-            return area[0]
+            return float(area)
         else:
             return area
 
