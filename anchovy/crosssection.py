@@ -415,10 +415,6 @@ class CrossSection:
         # list of handles for legend
         handles = []
 
-        # add the coordinates
-        coord_line = ax.plot(s, e, 'k', marker='.', label='Coordinates')
-        handles.append(coord_line[0])
-
         # show left or right walls
         if self._wall:
             l_wall = 'l'
@@ -474,6 +470,10 @@ class CrossSection:
                                marker='s', markerfacecolor='r',
                                markeredgecolor='r', label='Sub section')
             handles.append(ss_point[0])
+
+        # add the coordinates
+        coord_line = ax.plot(s, e, 'k', marker='.', label='Coordinates')
+        handles.append(coord_line[0])
 
         ax.legend(handles=handles)
         ax.set_xlabel('Station, in ft')
