@@ -1,11 +1,15 @@
 from math import inf
+import logging
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch, Polygon
 from matplotlib.lines import Line2D
 import numpy as np
 
+import anchovy
 from anchovy.sectionarray import SectionArray
+
+logger = anchovy.logger.getChild(__name__)
 
 
 class SubSection:
@@ -17,10 +21,17 @@ class SubSection:
     roughness : float
         Manning's roughness coefficient, in :math:`s/m^{1/3}`
     wall : {None, 'l', 'r', 'lr'}, optional
+    xs : CrossSection, optional
+        Parent cross section object
 
     """
 
-    def __init__(self, section_array, roughness, wall=None):
+    def __init__(self, section_array, roughness, wall=None, xs=None):
+
+        if xs is None:
+            self.logger = logger.getChild(self.__class__.__name__)
+        else:
+            self.logger = xs.logger.getChild(self.__class__.__name__)
 
         self._roughness = float(roughness)
         if not np.isfinite(self._roughness):
@@ -188,6 +199,8 @@ class CrossSection:
     def __init__(self, station, elevation, roughness, sect_stat=None,
                  active_elev=None, wall=False):
 
+        self.logger = logger.getChild(self.__class__.__name__)
+
         self._array = SectionArray(station, elevation)
         self._wall = bool(wall)
 
@@ -267,8 +280,7 @@ class CrossSection:
             poly = Polygon(xs_area_zy, facecolor='b', alpha=0.25)
             ax.add_patch(poly)
 
-    @ staticmethod
-    def _sections(array, station, elevation, roughness, rough_stat,
+    def _sections(self, array, station, elevation, roughness, rough_stat,
                   active_elev, wall):
 
         sections = []
@@ -279,11 +291,13 @@ class CrossSection:
 
         for i, n in enumerate(roughness):
             if i == 0 and wall:
-                sections.append(SubSection(split_arrays[i], n, wall='l'))
+                sections.append(SubSection(
+                    split_arrays[i], n, wall='l', xs=self))
             elif i == n_sections - 1 and wall:
-                sections.append(SubSection(split_arrays[i], n, wall='r'))
+                sections.append(SubSection(
+                    split_arrays[i], n, wall='r', xs=self))
             else:
-                sections.append(SubSection(split_arrays[i], n))
+                sections.append(SubSection(split_arrays[i], n, xs=self))
 
         return sections
 
@@ -471,9 +485,13 @@ class CrossSection:
                                markeredgecolor='r', label='Sub section')
             handles.append(ss_point[0])
 
-        # add the coordinates
-        coord_line = ax.plot(s, e, 'k', marker='.', label='Coordinates')
-        handles.append(coord_line[0])
+        # plot the coordinates
+        for ss in self._subsections:
+            s, e = ss.array().coordinates()
+            ax.plot(s, e, 'k', marker='.')
+
+        coord_line = Line2D([], [], color='k', marker='.', label='Coordinates')
+        handles.append(coord_line)
 
         ax.legend(handles=handles)
         ax.set_xlabel('Station, in ft')
