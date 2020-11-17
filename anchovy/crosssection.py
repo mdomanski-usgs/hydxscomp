@@ -403,7 +403,7 @@ class CrossSection:
 
         return hydraulic_radius
 
-    def plot(self, elevation=None, ax=None):
+    def plot(self, elevation=None, ax=None, legend=True):
         """Plots this cross section
 
         Parameters
@@ -414,6 +414,8 @@ class CrossSection:
         ax : matplotlib.axes.Axes or None, optional
             Axes to plot on. The default is None, which creates a
             new axes. If not None, `ax` is returned.
+        legend : bool, optional
+            Show legend in plot axes. The default is True.
 
         Returns
         -------
@@ -471,6 +473,14 @@ class CrossSection:
                              linewidth=5, label='Wetted perimeter')
             handles.append(wp_line)
 
+        # plot the coordinates
+        for ss in self._subsections:
+            s, e = ss.array().coordinates()
+            ax.plot(s, e, 'k', marker='.')
+
+        coord_line = Line2D([], [], color='k', marker='.', label='Coordinates')
+        handles.append(coord_line)
+
         # plot the points where subsections are divided
         if len(self._subsections) > 1:
             s, e = self._subsections[0].array().coordinates()
@@ -485,15 +495,8 @@ class CrossSection:
                                markeredgecolor='r', label='Sub section')
             handles.append(ss_point[0])
 
-        # plot the coordinates
-        for ss in self._subsections:
-            s, e = ss.array().coordinates()
-            ax.plot(s, e, 'k', marker='.')
-
-        coord_line = Line2D([], [], color='k', marker='.', label='Coordinates')
-        handles.append(coord_line)
-
-        ax.legend(handles=handles)
+        if legend:
+            ax.legend(handles=handles)
         ax.set_xlabel('Station, in ft')
         ax.set_ylabel('Elevation, in ft')
 
