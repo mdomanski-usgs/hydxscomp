@@ -3,7 +3,7 @@ coverage
 matplotlib==3.2.1
 notebook
 numpy==1.18.4
-pylint==2.4.4
+pylint==2.7.2
 recommonmark
 rope
 rstcheck
