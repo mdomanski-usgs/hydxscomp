@@ -3,8 +3,8 @@ from unittest import TestCase
 
 import numpy as np
 
-from anchovy.crosssection import SubSection
-from anchovy.crosssection import SectionArray
+from hydxscomp.crosssection import SubSection
+from hydxscomp.crosssection import SectionArray
 
 
 class TestSubSection(TestCase):

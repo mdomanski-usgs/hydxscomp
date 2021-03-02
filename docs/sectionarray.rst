@@ -2,5 +2,5 @@
 Cross section array interface
 =============================
 
-.. automodule:: anchovy.sectionarray
+.. automodule:: hydxscomp.sectionarray
     :members:

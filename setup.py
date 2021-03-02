@@ -15,10 +15,10 @@ try:
 except ImportError:
     coverage_imported = False
 
-name = 'anchovy'
+name = 'hydxscomp'
 
 about = {}
-with open('anchovy/__init__.py') as fp:
+with open('hydxscomp/__init__.py') as fp:
     exec(fp.read(), about)
 release = about['__release__']
 version = about['__version__']
@@ -30,8 +30,8 @@ install_requires = ['matplotlib', 'numpy']
 setup_kwargs = {
     'name': name,
     'version': release,
-    'packages': ['anchovy'],
-    'url': 'https://code.usgs.gov/mdomanski/aluminiumanchovy',
+    'packages': ['hydxscomp'],
+    'url': 'https://code.usgs.gov/dynamic-rating/hydxscomp',
     'license': 'License :: Public Domain',
     'author': 'Marian Domanski',
     'author_email': 'mdomanski@usgs.gov',
@@ -61,10 +61,10 @@ if sphinx_imported:
 
 if coverage_imported:
 
-    import test_anchovy
+    import test_hydxscomp
 
     class CoverageCommand(cmd.Command):
-        description = 'generates a coverage report of the anchovy unit tests'
+        description = 'generates a coverage report of the hydxscomp unit tests'
         user_options = []
 
         def initialize_options(self):
@@ -77,11 +77,11 @@ if coverage_imported:
             cov = Coverage()
             cov.start()
             test_loader = unittest.defaultTestLoader
-            test_suite = test_anchovy.load_tests(test_loader)
+            test_suite = test_hydxscomp.load_tests(test_loader)
             unittest.TextTestRunner().run(test_suite)
             cov.stop()
             cov.save()
-            cov.html_report(omit=["*/env/*", "*/tests/*", "test_anchovy.py"])
+            cov.html_report(omit=["*/env/*", "*/tests/*", "test_hydxscomp.py"])
 
     if sphinx_imported:
         cmdclass['coverage'] = CoverageCommand

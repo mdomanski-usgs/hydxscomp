@@ -1,4 +1,4 @@
-aluminum anchovy documentation
+hydxscomp documentation
 ==================================
 
 .. toctree::

@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'anchovy'
+project = 'hydxscomp'
 # copyright = '2020, USGS'
 author = 'USGS'
 

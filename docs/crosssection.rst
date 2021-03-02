@@ -2,5 +2,5 @@
 Cross section interface
 =======================
 
-.. automodule:: anchovy.crosssection
+.. automodule:: hydxscomp.crosssection
     :members:

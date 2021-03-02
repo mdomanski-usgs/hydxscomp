@@ -6,10 +6,10 @@ from matplotlib.patches import Patch, Polygon
 from matplotlib.lines import Line2D
 import numpy as np
 
-import anchovy
-from anchovy.sectionarray import SectionArray
+import hydxscomp
+from hydxscomp.sectionarray import SectionArray
 
-logger = anchovy.logger.getChild(__name__)
+logger = hydxscomp.logger.getChild(__name__)
 
 
 class SubSection:
