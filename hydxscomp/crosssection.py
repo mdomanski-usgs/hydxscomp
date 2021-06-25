@@ -403,7 +403,7 @@ class CrossSection:
 
         return hydraulic_radius
 
-    def plot(self, elevation=None, ax=None, legend=True):
+    def plot(self, elevation=None, ax=None, legend=True, roughness=False):
         """Plots this cross section
 
         Parameters
@@ -416,6 +416,8 @@ class CrossSection:
             new axes. If not None, `ax` is returned.
         legend : bool, optional
             Show legend in plot axes. The default is True.
+        roughness : bool, optional
+            Show roughness values on plot. The default is False.
 
         Returns
         -------
@@ -495,10 +497,68 @@ class CrossSection:
                                markeredgecolor='r', label='Sub section')
             handles.append(ss_point[0])
 
+        xs_max_e = self._array.max_elevation()
+        xs_min_e = self._array.min_elevation()
+        xs_e_range = xs_max_e - xs_min_e
+
+        y_min = xs_min_e - 0.1*xs_e_range
+
+        # show the roughness values of the subsections
+        if roughness:
+
+            vline_ymin = 0.05*(xs_max_e - xs_min_e) + xs_max_e
+            vline_ymax = 0.1*(xs_max_e - xs_min_e) + vline_ymin
+
+            annotate_y = 0.5*(vline_ymax + vline_ymin)
+
+            # annotate n-value of first subsection
+            subsection = self._subsections[0]
+            ss_s, _ = subsection.array().coordinates()
+            ss_x_min = ss_s[0]
+            ss_x_max = ss_s[-1]
+            ax.vlines(ss_x_min, vline_ymin, vline_ymax, color='k')
+            ax.vlines(ss_x_max, vline_ymin, vline_ymax, color='k')
+
+            ss_annotate_x = 0.5*(ss_x_min + ss_x_max)
+            ss_roughness = subsection.roughness()
+
+            ax.annotate('', xy=(ss_x_min, annotate_y), xycoords='data', xytext=(
+                ss_x_max, annotate_y), textcoords='data', arrowprops={'arrowstyle': '<->'})
+            ax.annotate('n = {}'.format(ss_roughness), xy=(
+                ss_annotate_x, annotate_y), xycoords='data', xytext=(-5, 5), textcoords='offset points', rotation='vertical')
+
+            ss_x_min = ss_x_max
+
+            for subsection in self._subsections[1:]:
+                ss_s, _ = subsection.array().coordinates()
+                ss_x_max = ss_s[-1]
+
+                # ax.vlines(ss_x_min, vline_ymin, vline_ymax, color='k')
+                ax.vlines(ss_x_max, vline_ymin, vline_ymax, color='k')
+
+                ss_annotate_x = 0.5*(ss_x_min + ss_x_max)
+                ss_roughness = subsection.roughness()
+
+                ax.annotate('', xy=(ss_x_min, annotate_y), xycoords='data', xytext=(
+                    ss_x_max, annotate_y), textcoords='data', arrowprops={'arrowstyle': '<->'})
+                ax.annotate('n = {}'.format(ss_roughness), xy=(
+                    ss_annotate_x, annotate_y), xycoords='data', xytext=(-5, 5), textcoords='offset points', rotation='vertical')
+
+                ss_x_min = ss_x_max
+
+            y_max = xs_max_e + 0.5*xs_e_range
+
+        else:
+
+            y_max = xs_max_e + 0.1*xs_e_range
+
         if legend:
             ax.legend(handles=handles)
+
         ax.set_xlabel('Station, in ft')
         ax.set_ylabel('Elevation, in ft')
+
+        ax.set_ylim((y_min, y_max))
 
         return ax
 
