@@ -553,7 +553,10 @@ class CrossSection:
             y_max = xs_max_e + 0.1*xs_e_range
 
         if legend:
-            ax.legend(handles=handles)
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width*0.75, box.height])
+            ax.legend(handles=handles, bbox_to_anchor=(
+                1, 0.5), loc='center left')
 
         ax.set_xlabel('Station, in ft')
         ax.set_ylabel('Elevation, in ft')
