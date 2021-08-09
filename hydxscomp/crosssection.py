@@ -403,6 +403,18 @@ class CrossSection:
 
         return hydraulic_radius
 
+    def n_subsections(self):
+        """Returns the number of subsections in this cross section
+
+        Returns
+        -------
+        n_subsections : int
+            Number of subsections
+
+        """
+
+        return len(self._subsections)
+
     def plot(self, elevation=None, ax=None, legend=True, roughness=False):
         """Plots this cross section
 
