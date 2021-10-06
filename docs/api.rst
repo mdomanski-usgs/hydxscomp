@@ -3,5 +3,6 @@ API
 ===
 
 .. toctree::
-    crosssection
+    frict
     sectionarray
+    crosssection
