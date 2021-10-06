@@ -506,7 +506,7 @@ class CrossSection:
                 sect_elev.append(e[0])
             ss_point = ax.plot(sect_station, sect_elev, linestyle='None',
                                marker='s', markerfacecolor='r',
-                               markeredgecolor='r', label='Sub section')
+                               markeredgecolor='r', label='Sub-section station')
             handles.append(ss_point[0])
 
         xs_max_e = self._array.max_elevation()
