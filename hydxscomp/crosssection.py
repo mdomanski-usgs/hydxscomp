@@ -18,24 +18,22 @@ class SubSection:
     Parameters
     ----------
     section_array : SectionArray
-    roughness : float
-        Manning's roughness coefficient, in :math:`s/m^{1/3}`
+    frict : Frict
+        Manning's n relation
     wall : {None, 'l', 'r', 'lr'}, optional
     xs : CrossSection, optional
         Parent cross section object
 
     """
 
-    def __init__(self, section_array, roughness, wall=None, xs=None):
+    def __init__(self, section_array, frict, wall=None, xs=None):
 
         if xs is None:
             self.logger = logger.getChild(self.__class__.__name__)
         else:
             self.logger = xs.logger.getChild(self.__class__.__name__)
 
-        self._roughness = float(roughness)
-        if not np.isfinite(self._roughness):
-            raise ValueError("roughness must be finite")
+        self._frict = frict
 
         if wall not in [None, 'l', 'r', 'lr']:
             raise ValueError("Invalid value for wall: {}".format(wall))
@@ -89,8 +87,9 @@ class SubSection:
 
         area = self.area(elevation)
         hydraulic_radius = self.hydraulic_radius(elevation)
+        roughness = self._frict.roughness(elevation)
 
-        return 1.486/self._roughness * hydraulic_radius**(2/3) * area
+        return 1.486/roughness * hydraulic_radius**(2/3) * area
 
     def hydraulic_radius(self, elevation):
         """Computes hydraulic radius for this subsection
@@ -120,17 +119,6 @@ class SubSection:
             hydraulic_radius[~zeros] = area[~zeros]/wetted_perimeter[~zeros]
 
         return hydraulic_radius
-
-    def roughness(self):
-        """Returns the roughness of this subsection
-
-        Returns
-        -------
-        roughness : float
-
-        """
-
-        return self._roughness
 
     def top_width(self, elevation):
         """Computes top width of this subsection
@@ -176,14 +164,13 @@ class CrossSection:
     elevation : array_like
         Elevation (vertical) coordinates. Must be one-dimensional
         and the same size as `station`.
-    roughness : array_like
-        Roughness values of subsections.
+    frict : Frict
+        Elevation/roughness relation
     sect_stat : array_like, optional
         Station values that define section splits. The default is
         None. Must not be None if the size of `roughness` is more
         than one. Values must be within the range of `station`
-        (exclusive). The number of elements must be one less than
-        the number of elements in `roughness`.
+        (exclusive).
     active_elev : array_like, optional
         Activation elevation for each subsection. If None, -inf is
         used.
@@ -196,7 +183,7 @@ class CrossSection:
 
     """
 
-    def __init__(self, station, elevation, roughness, sect_stat=None,
+    def __init__(self, station, elevation, frict, sect_stat=None,
                  active_elev=None, wall=False):
 
         self.logger = logger.getChild(self.__class__.__name__)
@@ -204,23 +191,18 @@ class CrossSection:
         self._array = SectionArray(station, elevation)
         self._wall = bool(wall)
 
-        roughness = np.array(roughness, dtype=np.float)
-
         if sect_stat is not None:
             sect_stat = np.array(sect_stat, dtype=np.float)
 
-        if not np.all(np.isfinite(roughness)):
-            raise ValueError("roughness must be finite")
+        self._frict = frict
 
-        if roughness.size > 1:
-            if sect_stat is None:
-                raise ValueError("sect_stat cannot be None")
-            if roughness.size - 1 != sect_stat.size:
-                raise ValueError("Invalid number of sect_stat values")
+        if sect_stat is not None:
+
             if sect_stat.min() <= self._array.min_station() \
                     or self._array.max_station() <= sect_stat.max():
                 raise ValueError(
                     "sect_stat bounds must be inside station bounds")
+
             if sect_stat.size > 1:
                 if not sect_stat.ndim == 1:
                     raise ValueError("sect_stat must be one dimensional")
@@ -228,24 +210,22 @@ class CrossSection:
                     raise ValueError("sect_stat must be in ascending order")
 
             if active_elev is None:
-                active_elev = np.full_like(roughness, -inf, dtype=np.float)
+                active_elev = np.full(
+                    (sect_stat.size + 1,), -np.inf, dtype=np.float)
             else:
                 active_elev = np.array(active_elev, dtype=np.float)
-                if active_elev.size != roughness.size:
-                    raise ValueError(
-                        "active_elev must be the same size as roughness")
 
             self._subsections = \
-                self._sections(self._array, station, elevation,
-                               roughness, sect_stat, active_elev, wall)
+                self._sections(self._array, self._frict,
+                               sect_stat, active_elev, wall)
         else:
             if active_elev is None:
                 active_elev = -inf
             array = SectionArray(station, elevation, active_elev)
             if self._wall:
-                self._subsections = [SubSection(array, roughness, 'lr')]
+                self._subsections = [SubSection(array, self._frict, 'lr')]
             else:
-                self._subsections = [SubSection(array, roughness)]
+                self._subsections = [SubSection(array, self._frict)]
 
         self._sect_stat = sect_stat
 
@@ -280,7 +260,7 @@ class CrossSection:
             poly = Polygon(xs_area_zy, facecolor='b', alpha=0.25)
             ax.add_patch(poly)
 
-    def _sections(self, array, station, elevation, roughness, rough_stat,
+    def _sections(self, array, frict, rough_stat,
                   active_elev, wall):
 
         sections = []
@@ -289,15 +269,16 @@ class CrossSection:
 
         n_sections = len(split_arrays)
 
-        for i, n in enumerate(roughness):
+        # for i, n in enumerate(roughness):
+        for i, array in enumerate(split_arrays):
             if i == 0 and wall:
                 sections.append(SubSection(
-                    split_arrays[i], n, wall='l', xs=self))
+                    split_arrays[i], frict, wall='l', xs=self))
             elif i == n_sections - 1 and wall:
                 sections.append(SubSection(
-                    split_arrays[i], n, wall='r', xs=self))
+                    split_arrays[i], frict, wall='r', xs=self))
             else:
-                sections.append(SubSection(split_arrays[i], n, xs=self))
+                sections.append(SubSection(split_arrays[i], frict, xs=self))
 
         return sections
 
@@ -415,7 +396,7 @@ class CrossSection:
 
         return len(self._subsections)
 
-    def plot(self, elevation=None, ax=None, legend=True, roughness=False):
+    def plot(self, elevation=None, ax=None, legend=True):
         """Plots this cross section
 
         Parameters
@@ -428,8 +409,6 @@ class CrossSection:
             new axes. If not None, `ax` is returned.
         legend : bool, optional
             Show legend in plot axes. The default is True.
-        roughness : bool, optional
-            Show roughness values on plot. The default is False.
 
         Returns
         -------
@@ -509,61 +488,6 @@ class CrossSection:
                                markeredgecolor='r', label='Sub-section station')
             handles.append(ss_point[0])
 
-        xs_max_e = self._array.max_elevation()
-        xs_min_e = self._array.min_elevation()
-        xs_e_range = xs_max_e - xs_min_e
-
-        y_min = xs_min_e - 0.1*xs_e_range
-
-        # show the roughness values of the subsections
-        if roughness:
-
-            vline_ymin = 0.05*(xs_max_e - xs_min_e) + xs_max_e
-            vline_ymax = 0.1*(xs_max_e - xs_min_e) + vline_ymin
-
-            annotate_y = 0.5*(vline_ymax + vline_ymin)
-
-            # annotate n-value of first subsection
-            subsection = self._subsections[0]
-            ss_s, _ = subsection.array().coordinates()
-            ss_x_min = ss_s[0]
-            ss_x_max = ss_s[-1]
-            ax.vlines(ss_x_min, vline_ymin, vline_ymax, color='k')
-            ax.vlines(ss_x_max, vline_ymin, vline_ymax, color='k')
-
-            ss_annotate_x = 0.5*(ss_x_min + ss_x_max)
-            ss_roughness = subsection.roughness()
-
-            ax.annotate('', xy=(ss_x_min, annotate_y), xycoords='data', xytext=(
-                ss_x_max, annotate_y), textcoords='data', arrowprops={'arrowstyle': '<->'})
-            ax.annotate('n = {}'.format(ss_roughness), xy=(
-                ss_annotate_x, annotate_y), xycoords='data', xytext=(-5, 5), textcoords='offset points', rotation='vertical')
-
-            ss_x_min = ss_x_max
-
-            for subsection in self._subsections[1:]:
-                ss_s, _ = subsection.array().coordinates()
-                ss_x_max = ss_s[-1]
-
-                # ax.vlines(ss_x_min, vline_ymin, vline_ymax, color='k')
-                ax.vlines(ss_x_max, vline_ymin, vline_ymax, color='k')
-
-                ss_annotate_x = 0.5*(ss_x_min + ss_x_max)
-                ss_roughness = subsection.roughness()
-
-                ax.annotate('', xy=(ss_x_min, annotate_y), xycoords='data', xytext=(
-                    ss_x_max, annotate_y), textcoords='data', arrowprops={'arrowstyle': '<->'})
-                ax.annotate('n = {}'.format(ss_roughness), xy=(
-                    ss_annotate_x, annotate_y), xycoords='data', xytext=(-5, 5), textcoords='offset points', rotation='vertical')
-
-                ss_x_min = ss_x_max
-
-            y_max = xs_max_e + 0.5*xs_e_range
-
-        else:
-
-            y_max = xs_max_e + 0.1*xs_e_range
-
         if legend:
             box = ax.get_position()
             ax.set_position([box.x0, box.y0, box.width*0.75, box.height])
@@ -572,8 +496,6 @@ class CrossSection:
 
         ax.set_xlabel('Station, in ft')
         ax.set_ylabel('Elevation, in ft')
-
-        ax.set_ylim((y_min, y_max))
 
         return ax
 
@@ -592,14 +514,7 @@ class CrossSection:
 
         """
 
-        wetted_perimeter = self.wetted_perimeter(elevation)
-
-        sigma = 0
-
-        for ss in self. _subsections:
-            sigma += ss.roughness() * ss.wetted_perimeter(elevation)
-
-        return sigma/wetted_perimeter
+        return self._frict.roughness(elevation)
 
     def top_width(self, elevation):
         """Computes top width for this cross section
