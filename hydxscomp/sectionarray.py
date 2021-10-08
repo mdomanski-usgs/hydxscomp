@@ -74,7 +74,7 @@ class SectionArray:
 
     def _array_comp(self, elevation, func, *args, **kwargs):
 
-        elevation = np.array(elevation, dtype=np.float)
+        elevation = np.array(elevation, dtype=np.float64)
         val = np.empty_like(elevation)
 
         with np.nditer([elevation, val], [], [['readonly'], ['writeonly']]) \

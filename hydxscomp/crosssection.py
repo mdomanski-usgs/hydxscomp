@@ -192,7 +192,7 @@ class CrossSection:
         self._wall = bool(wall)
 
         if sect_stat is not None:
-            sect_stat = np.array(sect_stat, dtype=np.float)
+            sect_stat = np.array(sect_stat, dtype=np.float64)
 
         self._frict = frict
 
@@ -211,9 +211,9 @@ class CrossSection:
 
             if active_elev is None:
                 active_elev = np.full(
-                    (sect_stat.size + 1,), -np.inf, dtype=np.float)
+                    (sect_stat.size + 1,), -np.inf, dtype=np.float64)
             else:
-                active_elev = np.array(active_elev, dtype=np.float)
+                active_elev = np.array(active_elev, dtype=np.float64)
 
             self._subsections = \
                 self._sections(self._array, self._frict,
