@@ -1,5 +1,4 @@
-import unittest
-from unittest import TestCase
+from unittest2 import TestCase
 
 import numpy as np
 
@@ -145,7 +144,3 @@ class TestCrossSection(TestCase):
         e = np.linspace(z, 2*z, 10)
         wp = wp[-1] + 2*(e - z)
         self.assertTrue(np.allclose(wp, xs.wetted_perimeter(e)))
-
-
-if __name__ == '__main__':
-    unittest.main()

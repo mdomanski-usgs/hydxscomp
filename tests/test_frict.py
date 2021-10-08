@@ -1,5 +1,4 @@
-import unittest
-from unittest import TestCase
+from unittest2 import TestCase
 
 from hydxscomp.frict import TableFrict
 

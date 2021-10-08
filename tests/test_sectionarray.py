@@ -1,5 +1,4 @@
-import unittest
-from unittest import TestCase
+from unittest2 import TestCase
 
 import numpy as np
 
@@ -230,7 +229,3 @@ class TestSectionArray(TestCase):
         e = np.linspace(0, z, 10)
         tw = 2*2*e*np.tan(np.pi/6)
         self.assertTrue(np.allclose(tw, sa.top_width(e)))
-
-
-if __name__ == '__main__':
-    unittest.main()

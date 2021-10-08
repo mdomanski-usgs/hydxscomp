@@ -1,7 +1,7 @@
 import os
 import glob
 from importlib import util
-import unittest
+import unittest2
 
 absolute_path, _ = os.path.split(os.path.realpath(__file__))
 
@@ -12,7 +12,7 @@ module_paths = \
 
 def load_tests(loader, *args):
 
-    suite = unittest.TestSuite()
+    suite = unittest2.TestSuite()
 
     for path in module_paths:
         _, module_file_name = os.path.split(path)
@@ -29,6 +29,6 @@ def load_tests(loader, *args):
 
 
 if __name__ == '__main__':
-    test_loader = unittest.defaultTestLoader
+    test_loader = unittest2.defaultTestLoader
     test_suite = load_tests(test_loader)
-    unittest.TextTestRunner().run(test_suite)
+    unittest2.TextTestRunner().run(test_suite)

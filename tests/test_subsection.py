@@ -1,5 +1,4 @@
-import unittest
-from unittest import TestCase
+from unittest2 import TestCase
 
 from hydxscomp.crosssection import SubSection
 from hydxscomp.crosssection import SectionArray
@@ -39,7 +38,3 @@ class TestSubSection(TestCase):
 
         ss_lr_wall = SubSection(section_array, frict, wall='lr')
         self.assertEqual(ss_lr_wall.wetted_perimeter(1), 3)
-
-
-if __name__ == '__main__':
-    unittest.main()
