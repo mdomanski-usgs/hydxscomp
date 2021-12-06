@@ -237,6 +237,24 @@ class SectionArray:
         return self.__class__(self._station, self._elevation,
                               self._active_elev)
 
+    def hydraulic_radius(self, elevation):
+        """Computes the hydraulic radius for this array
+
+        Parameters
+        ----------
+        elevation : array_like
+            Elevation for computing the radius.
+
+        Returns
+        -------
+        hydraulic_radius : float or numpy.ndarray
+
+        """
+
+        area = self.area(elevation)
+        wetted_perimeter = self.perimeter(elevation)
+        return area / wetted_perimeter
+
     def max_elevation(self):
         """Returns the maximum elevation of this array
 
