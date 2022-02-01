@@ -1,4 +1,4 @@
-from unittest2 import TestCase
+from unittest import TestCase
 
 from hydxscomp.crosssection import SubSection
 from hydxscomp.crosssection import SectionArray

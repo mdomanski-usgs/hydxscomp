@@ -1,5 +1,5 @@
-from distutils import cmd
-from setuptools import setup
+from setuptools import Command, setup
+
 import unittest
 
 
@@ -25,7 +25,7 @@ version = about['__version__']
 
 dev_status = 'Development Status :: 3 - Alpha'
 
-install_requires = ['matplotlib', 'numpy']
+install_requires = ['matplotlib==3.5.1', 'numpy==1.22.1']
 
 setup_kwargs = {
     'name': name,
@@ -42,7 +42,7 @@ setup_kwargs = {
         'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering :: Hydrology'
     ],
-    'python_requires': '~=3.7',
+    'python_requires': '~=3.10',
     'install_requires': install_requires
 }
 
@@ -63,7 +63,7 @@ if coverage_imported:
 
     import test_hydxscomp
 
-    class CoverageCommand(cmd.Command):
+    class CoverageCommand(Command):
         description = 'generates a coverage report of the hydxscomp unit tests'
         user_options = []
 

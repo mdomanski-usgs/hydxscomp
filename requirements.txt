@@ -1,8 +1,8 @@
 autopep8
 coverage
-matplotlib
+matplotlib==3.5.1
 notebook
-numpy
+numpy==1.22.1
 pylint
 recommonmark
 rope
@@ -10,5 +10,4 @@ rstcheck
 Sphinx
 sphinx-autobuild
 tox
-unittest2
 wheel
