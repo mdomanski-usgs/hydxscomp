@@ -1,5 +1,5 @@
-__release__ = '0.0.0.dev0'
-__version__ = '0.0'
+__release__ = '1.0.0.dev1'
+__version__ = '1.0'
 
 
 import logging
